@@ -70,112 +70,10 @@ class TV {
   }
 
   void actuatorsLength(TV tv){
-
-  //——————————————————————————————————————————————————————————————————————————————
-  //  Define searching algo
-  //——————————————————————————————————————————————————————————————————————————————
-    int loop_count_y = 0;
-    int loop_count_z = 0;
-    int y_int_lower_index = 0;
-    int y_int_upper_index = increase_index;
-    int z_int_lower_index = 0;
-    int z_int_upper_index = 0; //why is this not increase_index too
-    
-// -----------------------------------------------------------------------------------------------
-    
-    // this section loop searches for the section of y-int and records its lower and upper index value
-    while (desire_y_int >= y_int[y_int_lower_index]){
-        
-//        printf("testtttt %d \n ", z_int_lower_index);
-       
-        //-----------------------------------------------------------------------------------------------
-        // when we are below middle section
-        //-----------------------------------------------------------------------------------------------
-        if(loop_count_y < middle_search){
-            
-            if((desire_y_int>=y_int[y_int_lower_index]) && (desire_y_int<y_int[y_int_upper_index])){
-                
-                //            double test_var = abs(desire_y_int-y_int[y_int_upper_index]);
-                z_int_lower_index = (int)(find_z_section(y_int_upper_index, y_int_lower_index));
-                z_int_upper_index = z_int_lower_index + 1;
-                //            printf("abs(desire_y_int-y_int[y_int_upper_index]) = %f \n", test_var);
-//                printf("we are below 312\n");
-                
-                break;
-                
-                
-            }
-        }
-        //-----------------------------------------------------------------------------------------------
-        // when we are above middle section
-        //-----------------------------------------------------------------------------------------------
-        if(loop_count_y > middle_search){
-            
-            if((desire_y_int>=y_int[y_int_lower_index]) && (desire_y_int<y_int[y_int_upper_index])){
-                
-                y_int_lower_index += increase_index;
-                y_int_upper_index += increase_index;
-                z_int_lower_index = (int)(find_z_section(y_int_upper_index, y_int_lower_index));
-                z_int_upper_index = z_int_lower_index + 1;
-                //            printf("abs(desire_y_int-y_int[y_int_upper_index]) = %f \n", test_var);
-//                printf("we are above 321\n");
-                
-                break;
-                
-            }
-            
-        }
-        //-----------------------------------------------------------------------------------------------
-        // special case : when we are at middle section
-        //-----------------------------------------------------------------------------------------------
-        if (loop_count_y == middle_search){
-            double small_deviation = 0.001;
-            if(((y_int[y_int_upper_index]-small_deviation)<desire_y_int)&& (y_int[y_int_upper_index]+small_deviation)>desire_y_int){
-                y_int_lower_index += increase_index;
-                y_int_upper_index += increase_index;
-                z_int_lower_index = (int)(find_z_section(y_int_upper_index, y_int_lower_index));
-                z_int_upper_index = z_int_lower_index + 1;
-                //            printf("abs(desire_y_int-y_int[y_int_upper_index]) = %f \n", test_var);
-//                printf("we are above 312\n");
-                
-                break;
-            }
-            
-            if(((y_int[y_int_lower_index]-small_deviation)<desire_y_int)&& (y_int[y_int_lower_index]+small_deviation)>desire_y_int){
-                
-                z_int_lower_index = (int)(find_z_section(y_int_upper_index, y_int_lower_index));
-                z_int_upper_index = z_int_lower_index + 1;
-//                printf("we are below 312\n");
-                
-                break;
-            }
-        }
-        
-        y_int_lower_index += increase_index;
-        y_int_upper_index += increase_index;
-        ++loop_count_y;
-//        printf("from %d to %d and loop count is %d \n",y_int_lower_index,y_int_upper_index,loop_count_y);
-        
-    }
-//----------------------------------128-------------------------------------------------------------
-    
-    // this section uses the recorded lower and uppder index to search for z-int
-    
-    while (desire_z_int < z_int[z_int_lower_index]){
-        
-        if(desire_z_int > z_int[z_int_lower_index+1]){
-//            printf("not suppose to run this part\n");
-            break;
-        }
-        
-        ++z_int_lower_index;
-        ++z_int_upper_index;
-        ++loop_count_z;
-    }
-
-    act1_position = (act1_length[z_int_upper_index] - act1_length[z_int_lower_index]) / 2 + act1_length[z_int_lower_index];
-    act2_position = (act2_length[z_int_upper_index] - act2_length[z_int_lower_index]) / 2 + act2_length[z_int_lower_index];
-
+    double x = desire_y_int;
+    double y = desire_z_int;
+    act1_position = 17.1956 + 4.2100 * x + 4.2303 * y - 1.9297 * x * x - 0.1368 * x * y - 1.9375 * y * y;
+    act2_position = 17.1956 + (-4.2100) * x + 4.2303 * y + (-1.9297) * x * x + 0.1368 * x * y + (-1.9375) * y * y;
   }
 
 };
@@ -220,8 +118,8 @@ static double max_act2 = 19.1622;
 static double abort_current = 6.0 ;           // current which will cause abort  
 static double kp_scale_tune = 0.8;
 static double kd_scale_tune = 0.5;
-static double accel_lim = 1.5;
-static double velo_lim = 2; 
+static double accel_lim = 6.5;
+static double velo_lim = 9; 
 static double bubble_zone = 0.05;
 
 //-----------------------------------------------------------------
@@ -560,7 +458,7 @@ void moteus1_calibration() {
 //-----------------------------------------------------------------
 Serial.println("moteus 1 going back to middle in 1 sec");
 
-while (!((abs(moteus1.last_result().values.position-((17.8975+0.04)/conversion_factor))<=0.04/conversion_factor))){
+while (!((abs(moteus1.last_result().values.position-((17.25)/conversion_factor))<=0.04/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current,moteus2.last_result().values.q_current)){
         Serial.println("program terminated");
         while(true){}
@@ -664,7 +562,7 @@ void moteus2_calibration() {
 //-----------------------------------------------------------------
 Serial.println("moteus 2 going back to middle in 1 sec");
 
-while (!((abs(moteus2.last_result().values.position-((17.8975+0.04)/conversion_factor))<=0.04/conversion_factor))){
+while (!((abs(moteus2.last_result().values.position-((17.25)/conversion_factor))<=0.04/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current , moteus2.last_result().values.q_current)){
         Serial.println("program terminated");
         while(true){}
