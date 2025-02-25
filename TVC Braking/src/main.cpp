@@ -128,8 +128,10 @@ static double deviation_zone = 0.1;           // zone which we determine whether
 // braking hotfire specific constants and commands
 //-----------------------------------------------------------------
 static boolean deviation = 0;
-Moteus::PositionMode::Command act1_brakePos;
-Moteus::PositionMode::Command act2_brakePos;
+Moteus::PositionMode::Command act1_forward;
+Moteus::PositionMode::Command act2_forward;
+Moteus::PositionMode::Command act1_backward;
+Moteus::PositionMode::Command act2_backward;
 //-----------------------------------------------------------------
 // setup function
 //-----------------------------------------------------------------
@@ -225,13 +227,21 @@ void loop() {
 //——————————————————————————————————————————————————————————————————————————————
 // Brake Position command standby
 //——————————————————————————————————————————————————————————————————————————————  
-  act1_brakePos.position = middle_act1;
-  act1_brakePos.velocity_limit = velo_lim;
-  act1_brakePos.accel_limit = accel_lim;
+  act1_forward.position = NaN;
+  act1_forward.velocity = 5;
+  act1_forward.accel_limit = accel_lim;
+
+  act1_backward.position = NaN;
+  act1_backward.velocity = -5;
+  act1_backward.accel_limit = accel_lim;
   
-  act2_brakePos.position = middle_act2;
-  act2_brakePos.velocity_limit = velo_lim;
-  act2_brakePos.accel_limit = accel_lim;
+  act2_forward.position = NaN;
+  act2_forward.velocity = 5;
+  act2_forward.accel_limit = accel_lim;
+
+  act2_backward.position = NaN;
+  act2_backward.velocity = -5;
+  act2_backward.accel_limit = accel_lim;
 
 //——————————————————————————————————————————————————————————————————————————————
 // Check deviation state
@@ -248,22 +258,31 @@ void loop() {
 //——————————————————————————————————————————————————————————————————————————————
 if(deviation == 1){
   if((abs(moteus1_lastPosition-middle_act1 )<= bubble_zone)){
-    m1_commandCompleted = 1;
-    moteus1.SetBrake();
+      m1_commandCompleted = 1;
+      moteus1.SetBrake();
     }
-  else{
-    m1_commandCompleted = 0;
-    moteus1.SetPosition(act1_brakePos);
+  else if((middle_act1 - moteus1_lastPosition )>0){
+      m1_commandCompleted = 0;
+      moteus1.SetPosition(act1_forward);
     }
+  else if((middle_act1 - moteus1_lastPosition )<0){
+      m1_commandCompleted = 0;
+      moteus1.SetPosition(act1_backward);
+    }
+    
 
   // checking m2 command
   if((abs(moteus2_lastPosition-middle_act2)<= bubble_zone)){
-    m2_commandCompleted = 1;
-    moteus2.SetBrake();
+      m2_commandCompleted = 1;
+      moteus2.SetBrake();
     }
-  else{
-    m2_commandCompleted = 0;
-    moteus2.SetPosition(act2_brakePos);
+  else if((middle_act2 - moteus2_lastPosition)>0){
+      m2_commandCompleted = 0;
+      moteus2.SetPosition(act2_forward);
+    }
+  else if((middle_act2 - moteus2_lastPosition )<0){
+      m2_commandCompleted = 0;
+      moteus2.SetPosition(act2_backward);
     }
 
   // checking both command
@@ -302,7 +321,7 @@ if(deviation == 0){
   }
 
   if(deviation == 1){
-    Serial.print(("-------------Deviation detected, returning"));
+    Serial.print(("-------------Deviation detected, returning "));
     Serial.print("act1 to ");
     Serial.print(middle_act1);
     Serial.print(" act2 to ");
