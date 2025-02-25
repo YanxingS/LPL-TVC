@@ -115,6 +115,8 @@ static double min_act1 = 15.3125;             // updated min length
 static double max_act1 = 19.1622;             
 static double min_act2 = 15.7419;
 static double max_act2 = 19.1622;
+static double middle_act1 = 17.20;            // actuator 1 zero position
+static double middle_act2 = 17.40;            // actuator 2 zero position
 static double abort_current = 6.0 ;           // current which will cause abort  
 static double kp_scale_tune = 0.8;
 static double kd_scale_tune = 0.5;
@@ -122,6 +124,12 @@ static double accel_lim = 6.5;
 static double velo_lim = 9; 
 static double bubble_zone = 0.05;
 
+//-----------------------------------------------------------------
+// braking hotfire specific constants and commands
+//-----------------------------------------------------------------
+static boolean deviation = 0;
+Moteus::PositionMode::Command act1_brakePos;
+Moteus::PositionMode::Command act2_brakePos;
 //-----------------------------------------------------------------
 // setup function
 //-----------------------------------------------------------------
@@ -215,12 +223,65 @@ void loop() {
   gNextSendMillis += 20;
 
 //——————————————————————————————————————————————————————————————————————————————
+// Brake Position command standby
+//——————————————————————————————————————————————————————————————————————————————  
+  act1_brakePos.position = middle_act1;
+  act1_brakePos.velocity_limit = velo_lim;
+  act1_brakePos.accel_limit = accel_lim;
+  
+  act2_brakePos.position = middle_act2;
+  act2_brakePos.velocity_limit = velo_lim;
+  act2_brakePos.accel_limit = accel_lim;
+
+//——————————————————————————————————————————————————————————————————————————————
+// Check deviation state
+//——————————————————————————————————————————————————————————————————————————————  
+  if((abs(middle_act1-moteus1_lastPosition)>bubble_zone) || (abs(middle_act2-moteus2_lastPosition)>bubble_zone)){
+    deviation = 1;
+  }
+  else if((abs(middle_act1-moteus1_lastPosition)<bubble_zone) && (abs(middle_act2-moteus2_lastPosition)<bubble_zone)) {
+    deviation = 0;
+  }
+
+//——————————————————————————————————————————————————————————————————————————————
 // Excecute Brake Command
 //——————————————————————————————————————————————————————————————————————————————
+if(deviation == 1){
+  if((abs(moteus1_lastPosition-middle_act1 )<= bubble_zone)){
+    m1_commandCompleted = 1;
+    moteus1.SetBrake();
+    }
+  else{
+    m1_commandCompleted = 0;
+    moteus1.SetPosition(act1_brakePos);
+    }
 
-moteus1.SetBrake();
-moteus2.SetBrake();
+  // checking m2 command
+  if((abs(moteus2_lastPosition-middle_act2)<= bubble_zone)){
+    m2_commandCompleted = 1;
+    moteus2.SetBrake();
+    }
+  else{
+    m2_commandCompleted = 0;
+    moteus2.SetPosition(act2_brakePos);
+    }
 
+  // checking both command
+  if((m1_commandCompleted == 1) && (m2_commandCompleted == 1)){
+    
+      m1_commandCompleted = 0;
+      m2_commandCompleted = 0;
+      ++main_loop_counter;
+  }
+  else{
+    both_commandCompleted = 0;
+  }
+}
+
+if(deviation == 0){
+    moteus1.SetBrake();
+    moteus2.SetBrake();
+}
 //——————————————————————————————————————————————————————————————————————————————
 // print results 
 //——————————————————————————————————————————————————————————————————————————————
@@ -235,9 +296,18 @@ moteus2.SetBrake();
   Serial.print("moteus 2 position is ");
   Serial.println(moteus2_lastPosition);
   Serial.println();
+  if(deviation == 0){
+    Serial.println("-------------actuators Braking-------------");
+  }
 
-  Serial.println("-------------actuators Braking-------------");
-
+  if(deviation == 1){
+    Serial.print(("-------------Deviation detected, returning"));
+    Serial.print("act1 to ");
+    Serial.print(middle_act1);
+    Serial.print(" act2 to ");
+    Serial.print(middle_act2);
+    Serial.println("-------------");
+  }
  
 }
 
@@ -327,7 +397,7 @@ void moteus1_calibration() {
 //-----------------------------------------------------------------
 Serial.println("moteus 1 going back to middle in 1 sec");
 
-while (!((abs(moteus1.last_result().values.position-((17.25)/conversion_factor))<=0.04/conversion_factor))){
+while (!((abs(moteus1.last_result().values.position-((middle_act1)/conversion_factor))<=0.04/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current,moteus2.last_result().values.q_current)){
         Serial.println("program terminated");
         while(true){}
@@ -431,7 +501,7 @@ void moteus2_calibration() {
 //-----------------------------------------------------------------
 Serial.println("moteus 2 going back to middle in 1 sec");
 
-while (!((abs(moteus2.last_result().values.position-((17.25)/conversion_factor))<=0.04/conversion_factor))){
+while (!((abs(moteus2.last_result().values.position-((middle_act2)/conversion_factor))<=0.04/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current , moteus2.last_result().values.q_current)){
         Serial.println("program terminated");
         while(true){}
