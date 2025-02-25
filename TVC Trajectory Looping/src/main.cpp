@@ -118,6 +118,8 @@ static double min_act1 = 15.3125;             // updated min length
 static double max_act1 = 19.1622;             
 static double min_act2 = 15.7419;
 static double max_act2 = 19.1622;
+static double middle_act1 = 17.20;            // actuator 1 zero position
+static double middle_act2 = 17.40;            // actuator 2 zero position
 static double abort_current = 6.0 ;           // current which will cause abort  
 static double kp_scale_tune = 0.8;
 static double kd_scale_tune = 0.5;
@@ -461,7 +463,7 @@ void moteus1_calibration() {
 //-----------------------------------------------------------------
 Serial.println("moteus 1 going back to middle in 1 sec");
 
-while (!((abs(moteus1.last_result().values.position-((17.25)/conversion_factor))<=0.04/conversion_factor))){
+while (!((abs(moteus1.last_result().values.position-((middle_act1)/conversion_factor))<=0.04/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current,moteus2.last_result().values.q_current)){
         Serial.println("program terminated");
         while(true){}
@@ -565,7 +567,7 @@ void moteus2_calibration() {
 //-----------------------------------------------------------------
 Serial.println("moteus 2 going back to middle in 1 sec");
 
-while (!((abs(moteus2.last_result().values.position-((17.25)/conversion_factor))<=0.04/conversion_factor))){
+while (!((abs(moteus2.last_result().values.position-((middle_act2)/conversion_factor))<=0.04/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current , moteus2.last_result().values.q_current)){
         Serial.println("program terminated");
         while(true){}
