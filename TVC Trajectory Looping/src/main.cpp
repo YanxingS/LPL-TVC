@@ -126,7 +126,16 @@ static double kd_scale_tune = 0.5;
 static double accel_lim = 6.5;
 static double velo_lim = 9; 
 static double bubble_zone = 0.05;
+static double deviation_zone = 0.1;           // zone which we determine whether we deviated from desire zone
 
+//-----------------------------------------------------------------
+// braking hotfire specific constants and commands
+//-----------------------------------------------------------------
+static boolean deviation = 0;
+Moteus::PositionMode::Command act1_forward;
+Moteus::PositionMode::Command act2_forward;
+Moteus::PositionMode::Command act1_backward;
+Moteus::PositionMode::Command act2_backward;
 //-----------------------------------------------------------------
 // setup function
 //-----------------------------------------------------------------
@@ -204,30 +213,6 @@ void loop() {
   abort_by_space();
 
 //——————————————————————————————————————————————————————————————————————————————
-// Check for end of trajectory list
-//——————————————————————————————————————————————————————————————————————————————
-
-  if(main_loop_counter == traj_length){
-    Serial.println("Trajectory ended");
-    moteus1.SetStop();
-    moteus2.SetStop();
-
-    // print saved actuator length record
-
-    // Serial.println("printing all actuator1 record");
-    // Serial.println("-------------actuator 1 record-------------");
-
-    // for(int i = 0; i < 625; i++){
-    //   Serial.println(actuator1_record[i]);
-    // }
-    // Serial.println("-------------actuator 2 record-------------");
-
-    // for(int i = 0; i < 625; i++){
-    //   Serial.println(actuator2_record[i]);
-    // }
-
-  }
-//——————————————————————————————————————————————————————————————————————————————
 // assign critical values 
 //——————————————————————————————————————————————————————————————————————————————
   moteus1_lastPosition = moteus1.last_result().values.position*conversion_factor;  // conversion between rev to inches 
@@ -258,9 +243,121 @@ void loop() {
   
   gNextSendMillis += 20;
 
-  //——————————————————————————————————————————————————————————————————————————————
-  //  Setup position command
-  //——————————————————————————————————————————————————————————————————————————————
+//——————————————————————————————————————————————————————————————————————————————
+// Check for end of trajectory list, if ended, go to neutral and brake
+//——————————————————————————————————————————————————————————————————————————————
+
+  if(main_loop_counter == traj_length){
+    
+    act1_forward.position = NaN;
+    act1_forward.velocity = 5;
+    act1_forward.accel_limit = accel_lim;
+  
+    act1_backward.position = NaN;
+    act1_backward.velocity = -5;
+    act1_backward.accel_limit = accel_lim;
+    
+    act2_forward.position = NaN;
+    act2_forward.velocity = 5;
+    act2_forward.accel_limit = accel_lim;
+  
+    act2_backward.position = NaN;
+    act2_backward.velocity = -5;
+    act2_backward.accel_limit = accel_lim;
+
+    //——————————————————————————————————————————————————————————————————————————————
+    // Check deviation state
+    //——————————————————————————————————————————————————————————————————————————————  
+    if((abs(middle_act1-moteus1_lastPosition)>deviation_zone) || (abs(middle_act2-moteus2_lastPosition)>deviation_zone)){
+      deviation = 1;
+    }
+    else if((abs(middle_act1-moteus1_lastPosition)<=deviation) && (abs(middle_act2-moteus2_lastPosition)<=deviation_zone)) {
+      deviation = 0;
+    }
+    //——————————————————————————————————————————————————————————————————————————————
+    // Excecute Brake Command
+    //——————————————————————————————————————————————————————————————————————————————
+    if(deviation == 1){
+      if((abs(moteus1_lastPosition-middle_act1 )<= bubble_zone)){
+          m1_commandCompleted = 1;
+          moteus1.SetBrake();
+        }
+      else if((middle_act1 - moteus1_lastPosition )>0){
+          m1_commandCompleted = 0;
+          moteus1.SetPosition(act1_forward);
+        }
+      else if((middle_act1 - moteus1_lastPosition )<0){
+          m1_commandCompleted = 0;
+          moteus1.SetPosition(act1_backward);
+        }
+        
+    
+      // checking m2 command
+      if((abs(moteus2_lastPosition-middle_act2)<= bubble_zone)){
+          m2_commandCompleted = 1;
+          moteus2.SetBrake();
+        }
+      else if((middle_act2 - moteus2_lastPosition)>0){
+          m2_commandCompleted = 0;
+          moteus2.SetPosition(act2_forward);
+        }
+      else if((middle_act2 - moteus2_lastPosition )<0){
+          m2_commandCompleted = 0;
+          moteus2.SetPosition(act2_backward);
+        }
+    
+      // checking both command
+      if((m1_commandCompleted == 1) && (m2_commandCompleted == 1)){
+        
+          m1_commandCompleted = 0;
+          m2_commandCompleted = 0;
+          deviation = 0;
+          ++main_loop_counter;
+      }
+      else{
+        both_commandCompleted = 0;
+      }
+    }
+    
+    if(deviation == 0){
+        moteus1.SetBrake();
+        moteus2.SetBrake();
+    }
+    
+    //——————————————————————————————————————————————————————————————————————————————
+    // print results 
+    //——————————————————————————————————————————————————————————————————————————————
+    if (gLoopCount % 100 != 0) { return; }
+      // Only print our status every 5th cycle, so every 1s.
+      Serial.print(F("time "));
+      Serial.println(gNextSendMillis);
+
+      Serial.print("moteus 1 position is ");
+      Serial.println(moteus1_lastPosition);
+
+      Serial.print("moteus 2 position is ");
+      Serial.println(moteus2_lastPosition);
+      Serial.println();
+      if(deviation == 0){
+        Serial.println("-------------actuators Braking-------------");
+      }
+
+      if(deviation == 1){
+        Serial.print(("-------------Deviation detected, returning "));
+        Serial.print("act1 to ");
+        Serial.print(middle_act1);
+        Serial.print(" act2 to ");
+        Serial.print(middle_act2);
+        Serial.println("-------------");
+      }
+  }
+
+  
+  if(main_loop_counter == traj_length){return;} // if we went through all the traj, go back to top
+
+//——————————————————————————————————————————————————————————————————————————————
+//  Setup position command
+//——————————————————————————————————————————————————————————————————————————————
 
   Moteus::PositionMode::Command m1_position_cmd;
   Moteus::PositionMode::Command m2_position_cmd;
