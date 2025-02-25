@@ -196,32 +196,11 @@ void setup() {
 
 void loop() {
 
+//——————————————————————————————————————————————————————————————————————————————
+// abort by space checker 
+//——————————————————————————————————————————————————————————————————————————————
   abort_by_space();
 
-//——————————————————————————————————————————————————————————————————————————————
-// Check for end of trajectory list
-//——————————————————————————————————————————————————————————————————————————————
-
-  if(main_loop_counter == traj_length){
-    Serial.println("Trajectory ended");
-    moteus1.SetStop();
-    moteus2.SetStop();
-
-    // print saved actuator length record
-
-    // Serial.println("printing all actuator1 record");
-    // Serial.println("-------------actuator 1 record-------------");
-
-    // for(int i = 0; i < 625; i++){
-    //   Serial.println(actuator1_record[i]);
-    // }
-    // Serial.println("-------------actuator 2 record-------------");
-
-    // for(int i = 0; i < 625; i++){
-    //   Serial.println(actuator2_record[i]);
-    // }
-
-  }
 //——————————————————————————————————————————————————————————————————————————————
 // assign critical values 
 //——————————————————————————————————————————————————————————————————————————————
@@ -230,106 +209,17 @@ void loop() {
   moteus1_lastCurrent  = moteus1.last_result().values.q_current;
   moteus2_lastCurrent  = moteus2.last_result().values.q_current;
 
-//——————————————————————————————————————————————————————————————————————————————
-// Check for abort condition
-//——————————————————————————————————————————————————————————————————————————————
-
-// if(abort_sense(moteus1_lastCurrent,moteus2_lastCurrent)){
-//   Serial.println("program terminated");
-//   while(true){}
-// }
-
-//——————————————————————————————————————————————————————————————————————————————
-// Check whether or not command is completed
-//—————————————————————————————————————————————————————————————————————————————— 
-  TV tvcommand(TV_list_x[main_loop_counter],TV_list_y[main_loop_counter],TV_list_z[main_loop_counter]);
-  
-  tvcommand.actuatorsLength(tvcommand);
-  
-  // We intend to send control frames every 20ms.
-
   const auto time = millis();
   if (gNextSendMillis >= time) { return; }
   
   gNextSendMillis += 20;
 
-  //——————————————————————————————————————————————————————————————————————————————
-  //  Setup position command
-  //——————————————————————————————————————————————————————————————————————————————
-
-  Moteus::PositionMode::Command m1_position_cmd;
-  Moteus::PositionMode::Command m2_position_cmd;
-
-  Moteus::PositionMode::Command m1_hold_cmd;
-  Moteus::PositionMode::Command m2_hold_cmd;
-
 //——————————————————————————————————————————————————————————————————————————————
-// moteus 1 command 
-//——————————————————————————————————————————————————————————————————————————————
-  m1_position_cmd.position = tvcommand.act1_position/conversion_factor;
-
-  m1_position_cmd.velocity = NaN;
-  m1_position_cmd.velocity_limit = velo_lim;
-  m1_position_cmd.accel_limit = accel_lim;
-  m1_position_cmd.kp_scale = kp_scale_tune;
-  m1_position_cmd.kd_scale = kd_scale_tune;
-
-  //brake command
-
-  m1_hold_cmd.position = tvcommand.act1_position/conversion_factor;
-  m1_hold_cmd.stop_position = tvcommand.act1_position/conversion_factor;
-//——————————————————————————————————————————————————————————————————————————————
-// moteus 2 command 
+// Excecute Brake Command
 //——————————————————————————————————————————————————————————————————————————————
 
-  m2_position_cmd.position = tvcommand.act2_position/conversion_factor;
-
-  m2_position_cmd.velocity = NaN;
-  m2_position_cmd.velocity_limit = velo_lim;
-  m2_position_cmd.accel_limit = accel_lim;
-  m2_position_cmd.kp_scale = kp_scale_tune;
-  m2_position_cmd.kd_scale = kd_scale_tune;
-
-  //brake command
-
-  m2_hold_cmd.position = tvcommand.act2_position/conversion_factor;
-  m2_hold_cmd.stop_position = tvcommand.act2_position/conversion_factor;
-
-//——————————————————————————————————————————————————————————————————————————————
-// Check whether or not command is completed
-//——————————————————————————————————————————————————————————————————————————————
-
-  // checking m1 command
-  if((abs(moteus1_lastPosition-tvcommand.act1_position )<= bubble_zone)){
-    m1_commandCompleted = 1;
-    moteus1.SetPosition(m1_hold_cmd);
-    }
-  else{
-    m1_commandCompleted = 0;
-    moteus1.SetPosition(m1_position_cmd);
-    }
-
-  // checking m2 command
-  if((abs(moteus2_lastPosition-tvcommand.act2_position)<= bubble_zone)){
-    m2_commandCompleted = 1;
-    moteus2.SetPosition(m2_hold_cmd);
-    }
-  else{
-    m2_commandCompleted = 0;
-    moteus2.SetPosition(m2_position_cmd);
-    }
-
-  // checking both command
-  if((m1_commandCompleted == 1) && (m2_commandCompleted == 1)){
-    
-      m1_commandCompleted = 0;
-      m2_commandCompleted = 0;
-      ++main_loop_counter;
-  }
-  else{
-    both_commandCompleted = 0;
-  }
-
+moteus1.SetBrake();
+moteus2.SetBrake();
 
 //——————————————————————————————————————————————————————————————————————————————
 // print results 
@@ -346,30 +236,9 @@ void loop() {
   Serial.println(moteus2_lastPosition);
   Serial.println();
 
-  actuator1_record[main_loop_counter] = tvcommand.act1_position;
-  actuator2_record[main_loop_counter] = tvcommand.act2_position;
+  Serial.println("-------------actuators Braking-------------");
 
-//-----------------------------------------------------------------
-// print current TV command status 
-//-----------------------------------------------------------------
-
-  if(both_commandCompleted == 1){
-    Serial.println("-------------moteus 1 and 2 command completed-------------");
-  }
-  else if(both_commandCompleted == 0){
-    Serial.println("---------------------------------------");
-    Serial.print("m1 commanding to ");
-    Serial.print(tvcommand.act1_position);
-    Serial.print(" m2 commanding to ");
-    Serial.println(tvcommand.act2_position);
-    Serial.println("---------------------------------------");
-    Serial.println(main_loop_counter);
-    Serial.println("---------------------------------------");
-
-
-  }
-
-  
+ 
 }
 
 //-----------------------------------------------------------------
