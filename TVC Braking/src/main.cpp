@@ -122,8 +122,8 @@ static double kp_scale_tune = 0.8;
 static double kd_scale_tune = 0.5;
 static double accel_lim = 6.5;
 static double velo_lim = 9; 
-static double bubble_zone = 0.05;
-
+static double bubble_zone = 0.05;             // zone which we determine whether our command is completed
+static double deviation_zone = 0.1;           // zone which we determine whether we deviated from desire zone
 //-----------------------------------------------------------------
 // braking hotfire specific constants and commands
 //-----------------------------------------------------------------
@@ -236,10 +236,10 @@ void loop() {
 //——————————————————————————————————————————————————————————————————————————————
 // Check deviation state
 //——————————————————————————————————————————————————————————————————————————————  
-  if((abs(middle_act1-moteus1_lastPosition)>bubble_zone) || (abs(middle_act2-moteus2_lastPosition)>bubble_zone)){
+  if((abs(middle_act1-moteus1_lastPosition)>deviation_zone) || (abs(middle_act2-moteus2_lastPosition)>deviation_zone)){
     deviation = 1;
   }
-  else if((abs(middle_act1-moteus1_lastPosition)<bubble_zone) && (abs(middle_act2-moteus2_lastPosition)<bubble_zone)) {
+  else if((abs(middle_act1-moteus1_lastPosition)<=deviation) && (abs(middle_act2-moteus2_lastPosition)<=deviation_zone)) {
     deviation = 0;
   }
 
@@ -271,6 +271,7 @@ if(deviation == 1){
     
       m1_commandCompleted = 0;
       m2_commandCompleted = 0;
+      deviation = 0;
       ++main_loop_counter;
   }
   else{
