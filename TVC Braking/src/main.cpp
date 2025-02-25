@@ -179,7 +179,7 @@ void setup() {
   moteus2.SetStop();
 
   Serial.println("---------------------------------------");
-  Serial.println("Sequencing starting in 2 seconds");
+  Serial.println("Braking starting in 2 seconds");
   Serial.println("---------------------------------------");
 
   // Serial.println("freezed");
