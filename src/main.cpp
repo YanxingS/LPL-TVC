@@ -6,6 +6,7 @@
 #include <ACAN_T4.h>
 #include "Moteus.h"
 #include <arrays.h>
+#include <array.h>
 
 
 //——————————————————————————————————————————————————————————————————————————————
@@ -15,17 +16,17 @@
 double actuator1_record[1000];
 double actuator2_record[1000];
 
-int vector_size = sizeof(y_int) / sizeof(y_int[0]); // Correct for C-style arrays
-int increase_index = sqrt(vector_size);             // this is the number of indices between each intercent step
-int middle_search = (increase_index - 1)/2;
-const std::vector<double> z_sections = []
-{
-  const double length = vector_size, step = increase_index + 1;
-  std::vector<double> vec(static_cast<int>(length / step) + 1);
-  for (size_t i = 0; i < vec.size(); i++)
-    vec[i] = i * step;
-  return vec;
-}();
+int vector_size = sizeof(TV_X) / sizeof(TV_X[0]); // Correct for C-style arrays
+// int increase_index = sqrt(vector_size);             // this is the number of indices between each intercent step
+// int middle_search = (increase_index - 1)/2;
+// const std::vector<double> z_sections = []
+// {
+//   const double length = vector_size, step = increase_index + 1;
+//   std::vector<double> vec(static_cast<int>(length / step) + 1);
+//   for (size_t i = 0; i < vec.size(); i++)
+//     vec[i] = i * step;
+//   return vec;
+// }();
 
 static double conversion_factor = 0.1575;
 
@@ -34,7 +35,7 @@ static double conversion_factor = 0.1575;
 //-----------------------------------------------------------------
 void moteus1_calibration();
 void moteus2_calibration();
-double find_z_section(int y_int_upper, int y_int_lower);
+// double find_z_section(int y_int_upper, int y_int_lower);
 bool abort_sense(double m1_position,double m2_position);
 bool at_edge(double m1_position,double m2_position);
 void abort_by_space();
@@ -242,7 +243,7 @@ void loop() {
 //——————————————————————————————————————————————————————————————————————————————
 // Check whether or not command is completed
 //—————————————————————————————————————————————————————————————————————————————— 
-  TV tvcommand(TV_list_x[main_loop_counter],TV_list_y[main_loop_counter],TV_list_z[main_loop_counter]);
+  TV tvcommand(TV_X[main_loop_counter],TV_Y[main_loop_counter],TV_Z[main_loop_counter]);
   
   tvcommand.actuatorsLength(tvcommand);
   
@@ -578,24 +579,24 @@ while (!((abs(moteus2.last_result().values.position-((17.8975+0.04)/conversion_f
 // Declaration of a function that finds corresponding z-intercept section given a upper and lower index
 //-----------------------------------------------------------------
 
-double find_z_section(int y_int_upper, int y_int_lower){
+// double find_z_section(int y_int_upper, int y_int_lower){
     
-    double middle_value = (double)((y_int_upper+y_int_lower)/2);
-    int low_index = 0;
-    int high_index = 1;
+//     double middle_value = (double)((y_int_upper+y_int_lower)/2);
+//     int low_index = 0;
+//     int high_index = 1;
     
-    while(middle_value > z_sections[low_index]){
+//     while(middle_value > z_sections[low_index]){
         
-        if((middle_value>z_sections[low_index])&&(middle_value<z_sections[high_index])){
-            break;
-        }
-        else
-        low_index  += 1;
-        high_index += 1;
-    }
+//         if((middle_value>z_sections[low_index])&&(middle_value<z_sections[high_index])){
+//             break;
+//         }
+//         else
+//         low_index  += 1;
+//         high_index += 1;
+//     }
     
-    return z_sections[low_index];
-}
+//     return z_sections[low_index];
+// }
 
 bool abort_sense(double m1_current_sensed, double m2_current_sensed){
 
