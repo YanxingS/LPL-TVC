@@ -742,3 +742,7 @@ void abort_by_space(){
     }
   }
 }
+
+void CenterBrake(){
+
+}
