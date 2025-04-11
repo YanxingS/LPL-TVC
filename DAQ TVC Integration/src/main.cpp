@@ -185,10 +185,6 @@ void setup() {
 
 void loop() {
 
-  // we send command every 20 ms
-  const auto time = millis();
-  if (gNextSendMillis >= time) { return; }
-  gNextSendMillis += 20;
 
   //——————————————————————————————————————————————————————————————————————————————
   // assign/store position/current values
@@ -212,6 +208,8 @@ void loop() {
     Serial.println("ETHERNET CABLE DISCONNECTED, WAITING FOR RECONNECT ...");
     while (!dac.initialize());
     Serial.println("ETHERNET CABLE RECONNECTED!");
+
+    
   }
 
   // Check if DAC CONNECTION IS STILL ACTIVE 
@@ -244,6 +242,11 @@ void loop() {
     moteus1.SetStop();
     moteus2.SetStop();
   }
+
+  // We intend to send control frames every 20ms.
+  const auto time = millis();
+  if (gNextSendMillis >= time) { return; }
+  gNextSendMillis += 20;
 
   if(dac.getState() == BRAKE || (main_loop_counter = traj_length)){
 
