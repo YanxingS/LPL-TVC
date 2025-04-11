@@ -108,6 +108,7 @@ static float max_current = 0;         // max current/resistance we observed for 
 static float limit_current_m1 = 12.0;     // max current/resistance we allow for motor to experienced for moteus 1
 static float limit_current_m2 = 12.0;     // max current/resistance we allow for motor to experienced for moteus 2
 static int main_loop_counter = 0;     // main loop counter, used to advance in TV list
+static int states = 1; // states: 1 = calibration, state = 2 break, state 3 = vector
 
 //——————————————————————————————————————————————————————————————————————————————
 // critical constants
@@ -200,34 +201,17 @@ void loop() {
   // Compute new actuator lengths
   tvcommand.actuatorsLength(tvcommand);
 
-  // CHECK IF LINK STATE IS STILL ACTIVE 
-  dac.updateLinkState(); 
-
-  // IF LINK STATE IS NO LONGER ACTIVE, WAIT FOR INITIALIZATION + CONNECTION
-  if (dac.getStatus() == DISC) {
-    Serial.println("ETHERNET CABLE DISCONNECTED, WAITING FOR RECONNECT ...");
-    while (!dac.initialize());
-    Serial.println("ETHERNET CABLE RECONNECTED!");
-
-    
-  }
-
-  // Check if DAC CONNECTION IS STILL ACTIVE 
-  dac.updateStatus();
-
-  // If DAC CONNECTION IS NO LONGER ACTIVE, WAIT FOR RECONNECTION
-  if (dac.getStatus() == DISCONNECTED) {
-    Serial.println("DAC DISCONNECTED, WAITING FOR RECONNECT ... ");
-    while(!dac.connect());
-    Serial.println("DAC CONNECTED!");
-  }
-
   // NOW THAT DAC CONNECTION HAS BEEN ESTABLISHED, CHECK FOR MESSAGES 
   if (dac.getStatus() == CONNECTED) {
     if (dac.update()) Serial.println(dac.getState());
   }
-  
-  if(dac.getState() == CALIBRATE){
+
+  // CHECK IF LINK STATE IS STILL ACTIVE 
+  dac.updateLinkState(); 
+  // Check if DAC CONNECTION IS STILL ACTIVE 
+  dac.updateStatus();
+
+  if((dac.getState() == CALIBRATE && (states == 1))&&(dac.getStatus() == CONNECTED)){
 
     Serial.println("second moteus calibration beginning in 2 seconds");
     delay(2000);
@@ -242,15 +226,16 @@ void loop() {
     moteus1.SetStop();
     moteus2.SetStop();
     
-    if(dac.update() == true){return;}
+    // finished calibration, go to brake 
+    states = 2;
   }
 
-  // We intend to send control frames every 20ms.
+  // We intend to send control frames every 20ms for break and vector
   const auto time = millis();
   if (gNextSendMillis >= time) { return; }
   gNextSendMillis += 20;
 
-  if(dac.getState() == BRAKE || (main_loop_counter = traj_length)){
+  if(dac.getState() == BRAKE || (states == 2)){
 
     // clear mainloop counter
     main_loop_counter = 0;
@@ -329,15 +314,25 @@ void loop() {
         moteus1.SetBrake();
         moteus2.SetBrake();
     }
+
+    if(dac.update() == true){
+      states = 1; 
+      return;
+    } // if there is upate in dac, exit
+    else {states = 2;} // otherwise stay in break 
   }
   
-  if(dac.getState() == VECTOR){
+  if(dac.getState() == VECTOR || (states == 3 )){
     
     // listen to new message 
-    if(dac.update() == true){ return;}
-    
-    if(traj_length == main_loop_counter){
+    if(dac.update() == true){
+      states = 1; 
+      return;
+      }
+    else if(traj_length == main_loop_counter){
       main_loop_counter = 0;
+      states = 2;
+      return;
     } // re
     //——————————————————————————————————————————————————————————————————————————————
     //  Setup position command
@@ -410,14 +405,46 @@ void loop() {
           
             m1_commandCompleted = 0;
             m2_commandCompleted = 0;
-            ++main_loop_counter;
+            ++main_loop_counter; // advance in vectoring
         }
         else{
           both_commandCompleted = 0;
         }
 
   }
+
+    // CHECK IF LINK STATE IS STILL ACTIVE 
+    dac.updateLinkState(); 
+
+    // IF LINK STATE IS NO LONGER ACTIVE, WAIT FOR INITIALIZATION + CONNECTION
+    if (dac.getStatus() == DISC) {
+
+      if((states == 2) || (states == 3)){return;} // if we are disc. and in vector or break, continue
+
+      else{
+      Serial.println("ETHERNET CABLE DISCONNECTED, WAITING FOR RECONNECT ...");
+      while (!dac.initialize());
+      Serial.println("ETHERNET CABLE RECONNECTED!");
+      }
+    }
+  
+    // Check if DAC CONNECTION IS STILL ACTIVE 
+    dac.updateStatus();
+  
+    // If DAC CONNECTION IS NO LONGER ACTIVE, WAIT FOR RECONNECTION
+    if (dac.getStatus() == DISCONNECTED) {
+
+      if((states == 2) || (states == 3)){return;} // if we are disconnected, and in vector or break, continue
+      
+      else{
+      Serial.println("DAC DISCONNECTED, WAITING FOR RECONNECT ... ");
+      while(!dac.connect()); 
+      Serial.println("DAC CONNECTED!");
+      }
+    }
+
 }
+
 
 void moteus1_calibration() {
 
