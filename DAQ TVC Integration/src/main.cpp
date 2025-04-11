@@ -241,6 +241,8 @@ void loop() {
     Serial.println("------------------------");
     moteus1.SetStop();
     moteus2.SetStop();
+    
+    if(dac.update() == true){return;}
   }
 
   // We intend to send control frames every 20ms.
@@ -330,7 +332,13 @@ void loop() {
   }
   
   if(dac.getState() == VECTOR){
-
+    
+    // listen to new message 
+    if(dac.update() == true){ return;}
+    
+    if(traj_length == main_loop_counter){
+      main_loop_counter = 0;
+    } // re
     //——————————————————————————————————————————————————————————————————————————————
     //  Setup position command
     //——————————————————————————————————————————————————————————————————————————————
