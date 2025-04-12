@@ -169,6 +169,7 @@ void setup() {
     moteus1.SetStop();
     moteus2.SetStop();
 
+    Serial.println("test");
   if (dac.initialize()) {
     // Initialize the DAC Server
     Serial.println("DAC INITIALIZATION SUCCESS! with IP");
@@ -200,16 +201,11 @@ void loop() {
   
   // Compute new actuator lengths
   tvcommand.actuatorsLength(tvcommand);
-
-  // NOW THAT DAC CONNECTION HAS BEEN ESTABLISHED, CHECK FOR MESSAGES 
-  if (dac.getStatus() == CONNECTED) {
-    if (dac.update()) Serial.println(dac.getState());
-  }
-
+  
   // CHECK IF LINK STATE IS STILL ACTIVE 
-  dac.updateLinkState(); 
-  // Check if DAC CONNECTION IS STILL ACTIVE 
-  dac.updateStatus();
+  // dac.updateLinkState(); 
+  // // Check if DAC CONNECTION IS STILL ACTIVE 
+  // dac.updateStatus();
 
   if((dac.getState() == CALIBRATE && (states == 1))&&(dac.getStatus() == CONNECTED)){
 
@@ -314,26 +310,31 @@ void loop() {
         moteus1.SetBrake();
         moteus2.SetBrake();
     }
-
+    dac.updateStatus();
+    if (dac.getStatus() == DISC) {
+      dac.connect();
+    }
     if(dac.update() == true){
+      if (dac.getState() == CALIBRATE){
       states = 1; 
-      return;
+      }
+      else if (dac.getState() == VECTOR){
+        states = 3;
+        Serial.println("state is 3");
+      }
     } // if there is upate in dac, exit
     else {states = 2;} // otherwise stay in break 
   }
   
-  if(dac.getState() == VECTOR || (states == 3 )){
-    
+  if(dac.getState() == VECTOR && (states == 3 )){
+    Serial.println("vector phase");
+    states = 3; // you are in vector state
     // listen to new message 
     if(dac.update() == true){
+      Serial.println("is DAC really false ?");
       states = 1; 
       return;
       }
-    else if(traj_length == main_loop_counter){
-      main_loop_counter = 0;
-      states = 2;
-      return;
-    } // re
     //——————————————————————————————————————————————————————————————————————————————
     //  Setup position command
     //——————————————————————————————————————————————————————————————————————————————
@@ -388,6 +389,7 @@ void loop() {
         else{
           m1_commandCompleted = 0;
           moteus1.SetPosition(m1_position_cmd);
+          Serial.println("trying to command m1");
           }
 
         // checking m2 command
@@ -398,6 +400,7 @@ void loop() {
         else{
           m2_commandCompleted = 0;
           moteus2.SetPosition(m2_position_cmd);
+          Serial.println("trying to command m2");
           }
 
         // checking both command
@@ -406,15 +409,61 @@ void loop() {
             m1_commandCompleted = 0;
             m2_commandCompleted = 0;
             ++main_loop_counter; // advance in vectoring
+            Serial.println("advanced");
         }
         else{
           both_commandCompleted = 0;
         }
 
+        if(traj_length == main_loop_counter){
+          Serial.println("trajectory ended");
+          //main_loop_counter = 0; // uncomment if you want to rerun
+          states = 2;
+          return;
+        } 
+
+        //——————————————————————————————————————————————————————————————————————————————
+// print results 
+//——————————————————————————————————————————————————————————————————————————————
+  if (gLoopCount % 100 != 0) { return; }
+  // Only print our status every 5th cycle, so every 1s.
+  Serial.print(F("time "));
+  Serial.println(gNextSendMillis);
+
+  Serial.print("moteus 1 position is ");
+  Serial.println(moteus1_lastPosition);
+
+  Serial.print("moteus 2 position is ");
+  Serial.println(moteus2_lastPosition);
+  Serial.println();
+
+  actuator1_record[main_loop_counter] = tvcommand.act1_position;
+  actuator2_record[main_loop_counter] = tvcommand.act2_position;
+
+//-----------------------------------------------------------------
+// print current TV command status 
+//-----------------------------------------------------------------
+
+  if(both_commandCompleted == 1){
+    Serial.println("-------------moteus 1 and 2 command completed-------------");
+  }
+  else if(both_commandCompleted == 0){
+    Serial.println("---------------------------------------");
+    Serial.print("m1 commanding to ");
+    Serial.print(tvcommand.act1_position);
+    Serial.print(" m2 commanding to ");
+    Serial.println(tvcommand.act2_position);
+    Serial.println("---------------------------------------");
+    Serial.println(main_loop_counter);
+    Serial.println("---------------------------------------");
+
+
+  }
+
   }
 
     // CHECK IF LINK STATE IS STILL ACTIVE 
-    dac.updateLinkState(); 
+    //dac.updateLinkState(); 
 
     // IF LINK STATE IS NO LONGER ACTIVE, WAIT FOR INITIALIZATION + CONNECTION
     if (dac.getStatus() == DISC) {
@@ -644,4 +693,20 @@ while (!((abs(moteus2.last_result().values.position-((middle_act2)/conversion_fa
   
   }
   moteus2.SetStop();
+}
+
+bool abort_sense(double m1_current_sensed, double m2_current_sensed){
+
+  if((m1_current_sensed >= abort_current) || (m2_commandCompleted >= abort_current)){
+
+    Serial.println("abort initiated");
+
+    moteus1.SetStop();
+    moteus2.SetStop();
+    return true;
+  }
+  else{
+
+    return false;
+  }
 }

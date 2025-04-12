@@ -3,7 +3,7 @@
 
 // Constructor
 DAC_CONNECTION::DAC_CONNECTION()
-    : status(DISCONNECTED), state(BRAKE), message_length(0), server(PORT) {}
+    : status(DISCONNECTED), state(CALIBRATE), linkState(DISC),message_length(0), server(PORT) {}
 
 // Destructor (No Dynamic Memory Allocation)
 DAC_CONNECTION::~DAC_CONNECTION() {}
@@ -15,6 +15,9 @@ bool DAC_CONNECTION::initialize() {
     // Check whether Ethernet Shield is Attached
     if (!Ethernet.linkState()) {
         return false;
+    }
+    else {
+        this -> setLinkState(CONN);
     }
 
     this -> ip = Ethernet.localIP();
@@ -41,7 +44,10 @@ bool DAC_CONNECTION::connect() {
 // Check for messages and update state
 bool DAC_CONNECTION::update() {
 
+    if ((this -> getLinkState() == DISC) || (this -> getStatus() == DISCONNECTED)) return false;
+
     if (this -> client.available()){
+        
         while (this -> client.available() && this -> message_length < COMMAND_LENGTH + 1) {
             char c = this -> client.read();
             if (c == '#') {
