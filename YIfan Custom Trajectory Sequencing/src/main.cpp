@@ -6,7 +6,8 @@
 #include <ACAN_T4.h>
 #include "Moteus.h"
 #include <arrays.h>
-#include <array.h>
+#include <SD.h>
+#include <SPI.h>
 
 
 //——————————————————————————————————————————————————————————————————————————————
@@ -16,7 +17,7 @@
 double actuator1_record[1000];
 double actuator2_record[1000];
 
-int vector_size = sizeof(TV_Y) / sizeof(TV_Y[0]); // Correct for C-style arrays
+int vector_size = sizeof(TV_list_y) / sizeof(TV_list_y[0]); // Correct for C-style arrays
 int increase_index = sqrt(vector_size);             // this is the number of indices between each intercent step
 int middle_search = (increase_index - 1)/2;
 
@@ -110,7 +111,7 @@ static double min_act1 = 15.3125;             // updated min length
 static double max_act1 = 19.1622;             
 static double min_act2 = 15.7419;
 static double max_act2 = 19.1622;
-static double middle_act1 = 17.20;            // actuator 1 zero position
+static double middle_act1 = 17.00;            // actuator 1 zero position
 static double middle_act2 = 17.40;            // actuator 2 zero position
 static double abort_current = 6.0 ;           // current which will cause abort  
 static double kp_scale_tune = 0.8;
@@ -119,7 +120,9 @@ static double accel_lim = 6.5;
 static double velo_lim = 9; 
 static double bubble_zone = 0.05;
 static double deviation_zone = 0.1;           // zone which we determine whether we deviated from desire zone
-
+static double req_time = 10000;
+static int start_flag = 0;
+static uint32_t start_time;
 //-----------------------------------------------------------------
 // braking hotfire specific constants and commands
 //-----------------------------------------------------------------
@@ -152,7 +155,6 @@ void setup() {
     Serial.print("Error can3: 0x");
     Serial.println(errorCode, HEX);
   }
-
   //-----------------------------------------------------------------
   // moteus 1 and 2 initilization phase
   //-----------------------------------------------------------------
@@ -224,22 +226,37 @@ void loop() {
 //——————————————————————————————————————————————————————————————————————————————
 // Check whether or not command is completed
 //—————————————————————————————————————————————————————————————————————————————— 
-  TV tvcommand(TV_X[main_loop_counter],TV_Y[main_loop_counter],TV_Z[main_loop_counter]);
+  TV tvcommand(TV_list_x[main_loop_counter],TV_list_y[main_loop_counter],TV_list_z[main_loop_counter]);
   
   tvcommand.actuatorsLength(tvcommand);
   
   // We intend to send control frames every 20ms.
 
   const auto time = millis();
+  
   if (gNextSendMillis >= time) { return; }
   
   gNextSendMillis += 20;
 
 //——————————————————————————————————————————————————————————————————————————————
+//sequence time
+//——————————————————————————————————————————————————————————————————————————————
+if(start_flag == 0){
+  start_time = millis();
+  start_flag = 1;
+}
+
+uint32_t elapsed_time = millis() - start_time;
+
+
+
+//——————————————————————————————————————————————————————————————————————————————
 // Check for end of trajectory list, if ended, go to neutral and brake
 //——————————————————————————————————————————————————————————————————————————————
 
-  if(main_loop_counter == traj_length){
+  if(main_loop_counter == traj_length || elapsed_time >= req_time){
+    
+  
     
     act1_forward.position = NaN;
     act1_forward.velocity = 5;
@@ -345,7 +362,7 @@ void loop() {
   }
 
   
-  if(main_loop_counter == traj_length){return;} // if we went through all the traj, go back to top
+  if(main_loop_counter == traj_length || req_time <= elapsed_time){return;} // if we went through all the traj, go back to top
 
 //——————————————————————————————————————————————————————————————————————————————
 //  Setup position command
@@ -432,6 +449,9 @@ void loop() {
   // Only print our status every 5th cycle, so every 1s.
   Serial.print(F("time "));
   Serial.println(gNextSendMillis);
+
+  Serial.print(F("elapsed time"));
+  Serial.println(elapsed_time);
 
   Serial.print("moteus 1 position is ");
   Serial.println(moteus1_lastPosition);
