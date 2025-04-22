@@ -701,6 +701,12 @@ plot(x_axis,xy_lk_up(5,:));
 title("yaw-pitch table");
 legend("yaw","pitch");
 
+%% warning !! modification zone
+
+xy_lk_up(6,:) = xy_lk_up(6,:) - 0.19;
+xy_lk_up(7,:) = xy_lk_up(7,:) + 0.2; 
+
+
 %% create a complete TV list
 
 TV_list = zeros(3,length(xy_lk_up));
