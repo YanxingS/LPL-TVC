@@ -131,6 +131,9 @@ Moteus::PositionMode::Command act1_forward;
 Moteus::PositionMode::Command act2_forward;
 Moteus::PositionMode::Command act1_backward;
 Moteus::PositionMode::Command act2_backward;
+
+File dataFile;
+
 //-----------------------------------------------------------------
 // setup function
 //-----------------------------------------------------------------
@@ -155,6 +158,16 @@ void setup() {
     Serial.print("Error can3: 0x");
     Serial.println(errorCode, HEX);
   }
+
+  if(!SD.begin(254/*BUILTIN_SDCARD*/) ){
+    Serial.println("SD card failed");
+    while(true){};
+  }
+
+  else{
+    Serial.println("SD card ok");
+  }
+
   //-----------------------------------------------------------------
   // moteus 1 and 2 initilization phase
   //-----------------------------------------------------------------
@@ -243,6 +256,13 @@ void loop() {
 //——————————————————————————————————————————————————————————————————————————————
 if(start_flag == 0){
   start_time = millis();
+  dataFile = SD.open("act_data.csv", FILE_WRITE);
+  if(dataFile){
+    dataFile.println("Actuator 1,Actuator 2");
+  }
+  else{
+    Serial.println("Error opening file on SD card.");
+  }
   start_flag = 1;
 }
 
@@ -256,7 +276,8 @@ uint32_t elapsed_time = millis() - start_time;
 
   if(main_loop_counter == traj_length || elapsed_time >= req_time){
     
-  
+    if(dataFile){    dataFile.close(); // Close the file
+    Serial.println("Data written to SD card.");}
     
     act1_forward.position = NaN;
     act1_forward.velocity = 5;
@@ -462,6 +483,9 @@ uint32_t elapsed_time = millis() - start_time;
 
   actuator1_record[main_loop_counter] = tvcommand.act1_position;
   actuator2_record[main_loop_counter] = tvcommand.act2_position;
+  dataFile.print(actuator1_record[main_loop_counter]);
+  dataFile.print(",");
+  dataFile.println(actuator2_record[main_loop_counter]);
 
 //-----------------------------------------------------------------
 // print current TV command status 
