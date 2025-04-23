@@ -63,8 +63,8 @@ y_sp = zeros(1,length(t));
 
 for i=1:length(t)
  
-    z_sp(1,i) = (3/64)*cos(t(1,i));
-    y_sp(1,i) = (3/64)*sin(t(1,i));
+    z_sp(1,i) = (1/2)*cos(t(1,i));
+    y_sp(1,i) = (1/2)*sin(t(1,i));
     %%Essentially come up with some set of dummy xy locations on the graph, convert to thrust vectors, and then use rotation
 
 end
