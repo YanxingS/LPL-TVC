@@ -75,8 +75,8 @@ class TV {
     //——————————————————————————————————————————————————————————————————————————————
     //  The following equations are result of linear fit in matlab curve fitter
     //——————————————————————————————————————————————————————————————————————————————
-    act1_position = 17.1956 + 4.2100 * x + 4.2303 * y - 1.9297 * x * x - 0.1368 * x * y - 1.9375 * y * y;
-    act2_position = 17.1956 + (-4.2100) * x + 4.2303 * y + (-1.9297) * x * x + 0.1368 * x * y + (-1.9375) * y * y;
+    act1_position = 17.25 + 4.2100 * x + 4.2303 * y - 1.9297 * x * x - 0.1368 * x * y - 1.9375 * y * y;
+    act2_position = 17.25 + (-4.2100) * x + 4.2303 * y + (-1.9297) * x * x + 0.1368 * x * y + (-1.9375) * y * y;
   }
 
 };
@@ -114,12 +114,12 @@ static int main_loop_counter = 0;     // main loop counter, used to advance in T
 //-----------------------------------------------------------------
 
 static int traj_length = vector_size;
-static double min_act1 = 15.3125;             // updated min length
-static double max_act1 = 19.1622;             
-static double min_act2 = 15.7419;
-static double max_act2 = 19.1622;
-static double middle_act1 = 17.20;            // actuator 1 zero position
-static double middle_act2 = 17.40;            // actuator 2 zero position
+static double min_act1 = 15.25;             // updated min length
+static double max_act1 = 18.5;             
+static double min_act2 = 15.25;
+static double max_act2 = 18.5;
+static double middle_act1 = 17.25;            // actuator 1 zero position
+static double middle_act2 = 17.25;            // actuator 2 zero position
 static double abort_current = 6.0 ;           // current which will cause abort  
 static double kp_scale_tune = 0.8;
 static double kd_scale_tune = 0.5;
@@ -547,7 +547,6 @@ void moteus1_calibration() {
   moteus1.SetOutputExact(calibration_cmd);
   
   Serial.println("moteus 1 current psotion is now : ");
-
   zero_cmd.accel_limit = 0.1;
   zero_cmd.position = calibration_cmd.position;
   zero_cmd.velocity = NaN;
@@ -560,7 +559,7 @@ void moteus1_calibration() {
 //-----------------------------------------------------------------
 Serial.println("moteus 1 going back to middle in 1 sec");
 
-while (!((abs(moteus1.last_result().values.position-((middle_act1)/conversion_factor))<=0.04/conversion_factor))){
+while (!((abs(moteus1.last_result().values.position-((middle_act1)/conversion_factor))<=0.02/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current,moteus2.last_result().values.q_current)){
         Serial.println("program terminated");
         while(true){}
@@ -658,13 +657,13 @@ void moteus2_calibration() {
   moteus2.SetPosition(zero_cmd);
   Serial.println(moteus2.last_result().values.position);
 
-
+ 
 //-----------------------------------------------------------------
 // new section, going back to it's middle section
 //-----------------------------------------------------------------
 Serial.println("moteus 2 going back to middle in 1 sec");
 
-while (!((abs(moteus2.last_result().values.position-((middle_act2)/conversion_factor))<=0.04/conversion_factor))){
+while (!((abs(moteus2.last_result().values.position-((middle_act2)/conversion_factor))<=0.02/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current , moteus2.last_result().values.q_current)){
         Serial.println("program terminated");
         while(true){}
