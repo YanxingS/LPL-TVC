@@ -15,7 +15,7 @@
 double actuator1_record[1000];
 double actuator2_record[1000];
 
-int vector_size = sizeof(y_int) / sizeof(y_int[0]); // Correct for C-style arrays
+int vector_size = sizeof(TV_list_y) / sizeof(TV_list_y[0]); // Correct for C-style arrays
 int increase_index = sqrt(vector_size);             // this is the number of indices between each intercent step
 int middle_search = (increase_index - 1)/2;
 const std::vector<double> z_sections = []
