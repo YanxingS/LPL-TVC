@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "Teensy_TVC",
+			"path": ".."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"unordered_map": "cpp",
+			"istream": "cpp",
+			"ostream": "cpp",
+			"streambuf": "cpp",
+			"functional": "cpp"
+		}
+	}
+}
