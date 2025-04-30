@@ -31,6 +31,7 @@ void moteus2_calibration();
 bool abort_sense(double m1_position,double m2_position);
 bool at_edge(double m1_position,double m2_position);
 void abort_by_space();
+void cleanup();
 
 //-----------------------------------------------------------------
 // TV class
@@ -90,6 +91,17 @@ static double moteus2_lastPosition;
 static double moteus1_lastPosition;
 static double moteus1_lastCurrent;
 static double moteus2_lastCurrent;
+
+static double moteus1_lastVelo;
+static double moteus2_lastVelo;
+
+static double moteus1_torq;
+static double moteus2_torq;
+static double moteus1_d_current;
+static double moteus2_d_current;
+static double moteus1_temp;
+static double moteus2_temp;
+
 // static double commanded_position;     // testing, this variable is manually set
 static int m1_commandCompleted = 0;   // m1 command completion check
 static int m2_commandCompleted = 0;   // m2 command completion check
@@ -133,6 +145,8 @@ Moteus::PositionMode::Command act1_backward;
 Moteus::PositionMode::Command act2_backward;
 
 File dataFile;
+unsigned long loop_start_time;
+bool file_open = false;
 
 //-----------------------------------------------------------------
 // setup function
@@ -159,11 +173,10 @@ void setup() {
     Serial.println(errorCode, HEX);
   }
 
-  if(!SD.begin(254/*BUILTIN_SDCARD*/) ){
+  if(!SD.begin(BUILTIN_SDCARD) ){
     Serial.println("SD card failed");
     while(true){};
   }
-
   else{
     Serial.println("SD card ok");
   }
@@ -226,6 +239,14 @@ void loop() {
   moteus2_lastPosition = moteus2.last_result().values.position*conversion_factor;  // conversion between rev to inches
   moteus1_lastCurrent  = moteus1.last_result().values.q_current;
   moteus2_lastCurrent  = moteus2.last_result().values.q_current;
+  moteus1_lastVelo = moteus1.last_result().values.velocity;
+  moteus2_lastVelo = moteus2.last_result().values.velocity;
+  moteus1_torq = moteus1.last_result().values.torque;
+  moteus2_torq = moteus2.last_result().values.torque;
+  moteus1_d_current = moteus1.last_result().values.d_current;
+  moteus2_d_current = moteus2.last_result().values.d_current;
+  moteus1_temp = moteus1.last_result().values.motor_temperature;
+  moteus2_temp = moteus2.last_result().values.motor_temperature;
 
 //——————————————————————————————————————————————————————————————————————————————
 // Check for abort condition
@@ -246,6 +267,7 @@ void loop() {
   // We intend to send control frames every 20ms.
 
   const auto time = millis();
+  loop_start_time = millis();
   
   if (gNextSendMillis >= time) { return; }
   
@@ -255,13 +277,17 @@ void loop() {
 //sequence time
 //——————————————————————————————————————————————————————————————————————————————
 if(start_flag == 0){
-  start_time = millis();
-  dataFile = SD.open("act_data.csv", FILE_WRITE);
-  if(dataFile){
-    dataFile.println("Actuator 1,Actuator 2");
-  }
-  else{
-    Serial.println("Error opening file on SD card.");
+  char filename[32];
+  sprintf(filename, "TVCdata.txt", millis());
+  dataFile = SD.open(filename, FILE_WRITE);
+  if(dataFile) {
+    file_open = true;
+    dataFile.println("Time,Act1Cmd,Act1Real,Act1Velo,Act1Torq,Act1Qcurr,Act1Dcurr,Act1Temp,Act2Cmd,Act2Real,Act2Velo,Act2Torq,Act2Qcurr,Act2Dcurr,Act2Temp");
+    dataFile.flush();
+    Serial.print("Logging to: ");
+    Serial.println(filename);
+  } else {
+    Serial.println("Error generating datafile");
   }
   start_flag = 1;
 }
@@ -483,9 +509,41 @@ uint32_t elapsed_time = millis() - start_time;
 
   actuator1_record[main_loop_counter] = tvcommand.act1_position;
   actuator2_record[main_loop_counter] = tvcommand.act2_position;
-  dataFile.print(actuator1_record[main_loop_counter]);
-  dataFile.print(",");
-  dataFile.println(actuator2_record[main_loop_counter]);
+
+  if(dataFile){
+    dataFile.print(loop_start_time);               // Time
+    dataFile.print(",");
+    dataFile.print(tvcommand.act1_position);       // Actuator 1 commanded position
+    dataFile.print(",");
+    dataFile.print(moteus1_lastPosition);         // Actuator 1 real position
+    dataFile.print(",");
+    dataFile.print(moteus1_lastVelo);            // Actuator 1 velocity
+    dataFile.print(",");
+    dataFile.print(moteus1_torq);                // Actuator 1 torque
+    dataFile.print(",");
+    dataFile.print(moteus1_lastCurrent);         // Actuator 1 current
+    dataFile.print(",");
+    // dataFile.print(moteus1_d_current);           // Actuator 1 d_current
+    // dataFile.print(",");
+    // dataFile.print(moteus1_temp);                // Actuator 1 temperature
+    // dataFile.print(",");
+    // dataFile.print(tvcommand.act2_position);       // Actuator 2 commanded position
+    // dataFile.print(",");
+    // dataFile.print(moteus2_lastPosition);         // Actuator 2 real position
+    // dataFile.print(",");
+    // dataFile.print(moteus2_lastVelo);            // Actuator 2 velocity
+    // dataFile.print(",");
+    // dataFile.print(moteus2_torq);                // Actuator 2 torque
+    // dataFile.print(",");
+    // dataFile.print(moteus2_lastCurrent);         // Actuator 2 current
+    // dataFile.print(",");
+    // dataFile.print(moteus2_d_current);           // Actuator 2 d_current
+    // dataFile.print(",");
+    // dataFile.print(moteus2_temp);                // Actuator 2 temperature
+    dataFile.println();
+    dataFile.flush();
+  }
+
 
 //-----------------------------------------------------------------
 // print current TV command status 
@@ -503,7 +561,6 @@ uint32_t elapsed_time = millis() - start_time;
     Serial.println("---------------------------------------");
     Serial.println(main_loop_counter);
     Serial.println("---------------------------------------");
-
 
   }
 
@@ -721,7 +778,7 @@ bool abort_sense(double m1_current_sensed, double m2_current_sensed){
   if((m1_current_sensed >= abort_current) || (m2_commandCompleted >= abort_current)){
 
     Serial.println("abort initiated");
-
+    //cleanup();
     moteus1.SetStop();
     moteus2.SetStop();
     return true;
@@ -753,9 +810,18 @@ void abort_by_space(){
     char input = Serial.read();
     if(input == ' '){
       Serial.println("Entered Space, Program Terminated");
+      //cleanup();
       moteus1.SetStop();
       moteus2.SetStop();
       while(true){}
     }
+  }
+}
+
+void cleanup() {
+  if(file_open) {
+    dataFile.close();
+    file_open = false;
+    Serial.println("Data file closed");
   }
 }
