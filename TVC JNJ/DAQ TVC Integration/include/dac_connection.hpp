@@ -2,6 +2,7 @@
 #define DAC_CONNECTION_HPP
 
 #include <QNEthernet.h>
+#include <SD.h>
 
 using namespace qindesign::network;
 
@@ -20,6 +21,7 @@ private:
     int status;
     int state;
     int linkState;
+    File dataFile;
     
     unsigned int message_length;
     char message[COMMAND_LENGTH];

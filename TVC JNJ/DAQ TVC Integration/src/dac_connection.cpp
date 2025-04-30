@@ -1,5 +1,6 @@
 #include "dac_connection.hpp"
 #include <cstring>
+#include <SD.h>
 
 // Constructor
 DAC_CONNECTION::DAC_CONNECTION()
@@ -57,6 +58,19 @@ bool DAC_CONNECTION::update() {
                 if (strcmp(this -> message, "VECTR") == 0) {this -> setState(VECTOR); this -> client.print("ACK#");}
                 else if (strcmp(this -> message, "CALBR") == 0) {this -> setState(CALIBRATE); this -> client.print("ACK#");}
                 else if (strcmp(this -> message, "BRAKE") == 0) {this -> setState(BRAKE); this -> client.print("ACK#");}
+                else if (strcmp(this -> message, "READS") == 0) {
+                    if (!dataFile) {
+                        dataFile = SD.open("TVCdata.txt", FILE_READ);  // only open once
+                    }
+                    if (dataFile && dataFile.available()){
+                        String tem = dataFile.readStringUntil('\n');
+                        this -> client.print("ACK#" + tem + "#");
+                    }
+                    else{
+                        if(dataFile) dataFile.close();
+                        this -> client.print("ACK##");
+                    }
+                }
                 else return false; // Invalid Command
 
                 return true; 
