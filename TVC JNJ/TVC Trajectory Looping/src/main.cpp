@@ -338,6 +338,9 @@ void loop() {
       Serial.print("moteus 2 position is ");
       Serial.println(moteus2_lastPosition);
       Serial.println();
+
+      gLoopCount++;
+      
       if(deviation == 0){
         Serial.println("-------------actuators Braking-------------");
       }
