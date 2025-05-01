@@ -31,7 +31,7 @@ void moteus2_calibration();
 bool abort_sense(double m1_position,double m2_position);
 bool at_edge(double m1_position,double m2_position);
 void abort_by_space();
-void cleanup();
+
 
 //-----------------------------------------------------------------
 // TV class
@@ -69,8 +69,8 @@ class TV {
     //——————————————————————————————————————————————————————————————————————————————
     //  The following equations are result of linear fit in matlab curve fitter
     //——————————————————————————————————————————————————————————————————————————————
-    act1_position = 17.1956 + 4.2100 * x + 4.2303 * y - 1.9297 * x * x - 0.1368 * x * y - 1.9375 * y * y;
-    act2_position = 17.1956 + (-4.2100) * x + 4.2303 * y + (-1.9297) * x * x + 0.1368 * x * y + (-1.9375) * y * y;
+    act1_position = 17.0070 + 4.2091 * x + 4.2166 * y - 1.7991 * x * x - 0.5835 * x * y - 1.8018 * y * y;
+    act2_position = 17.0070 + (-4.2091) * x + 4.2166 * y + (-1.7991) * x * x + 0.5835 * x * y + (-1.8018) * y * y;
   }
 
 };
@@ -102,6 +102,9 @@ static double moteus2_d_current;
 static double moteus1_temp;
 static double moteus2_temp;
 
+static double moteus1_vol;
+static double moteus2_vol;
+
 // static double commanded_position;     // testing, this variable is manually set
 static int m1_commandCompleted = 0;   // m1 command completion check
 static int m2_commandCompleted = 0;   // m2 command completion check
@@ -110,7 +113,7 @@ static int both_commandCompleted = 0;
 static uint32_t gNextSendMillis = 0;  // adds 20ms everyloop to ensure we send command every 20 seconds
 uint16_t gLoopCount = 0;              // loop counter
 static float max_current = 0;         // max current/resistance we observed for motor to experienced
-static float limit_current_m1 = 12.0;     // max current/resistance we allow for motor to experienced for moteus 1
+static float limit_current_m1 = 10.0;     // max current/resistance we allow for motor to experienced for moteus 1
 static float limit_current_m2 = 12.0;     // max current/resistance we allow for motor to experienced for moteus 2
 static int main_loop_counter = 0;     // main loop counter, used to advance in TV list
 // static double abs_speed = 4;
@@ -119,13 +122,13 @@ static int main_loop_counter = 0;     // main loop counter, used to advance in T
 //-----------------------------------------------------------------
 
 static int traj_length = vector_size;
-static double min_act1 = 15.3125;             // updated min length
-static double max_act1 = 19.1622;             
-static double min_act2 = 15.7419;
-static double max_act2 = 19.1622;
+static double min_act1 = 15.25;             // updated min length
+static double max_act1 = 18.5;             
+static double min_act2 = 15.25;
+static double max_act2 = 18.5;
 static double middle_act1 = 17.00;            // actuator 1 zero position
-static double middle_act2 = 17.40;            // actuator 2 zero position
-static double abort_current = 6.0 ;           // current which will cause abort  
+static double middle_act2 = 17.00;            // actuator 2 zero position
+static double abort_current = 12.0 ;           // current which will cause abort  
 static double kp_scale_tune = 0.8;
 static double kd_scale_tune = 0.5;
 static double accel_lim = 6.5;
@@ -133,8 +136,7 @@ static double velo_lim = 9;
 static double bubble_zone = 0.05;
 static double deviation_zone = 0.1;           // zone which we determine whether we deviated from desire zone
 static double req_time = 10000;
-static int start_flag = 0;
-static uint32_t start_time;
+
 //-----------------------------------------------------------------
 // braking hotfire specific constants and commands
 //-----------------------------------------------------------------
@@ -179,6 +181,18 @@ void setup() {
   }
   else{
     Serial.println("SD card ok");
+  }
+  SD.remove("TVCdata.txt");
+  dataFile = SD.open("TVCdata.txt", FILE_WRITE);
+  // clean the file
+
+  if(dataFile) {
+    file_open = true;
+    dataFile.println("ACK#Time|Act1Cmd|Act1Real|Act1Velo|Act1Torq|Act1Qcurr|Act1Dcurr|Act1Temp|Act1Vol|Act2Cmd|Act2Real|Act2Velo|Act2Torq|Act2Qcurr|Act2Dcurr|Act2Temp|Act2Vol#");
+    dataFile.flush();
+    Serial.print("Logging..");
+  } else {
+    Serial.println("Error generating datafile");
   }
 
   //-----------------------------------------------------------------
@@ -247,7 +261,8 @@ void loop() {
   moteus2_d_current = moteus2.last_result().values.d_current;
   moteus1_temp = moteus1.last_result().values.motor_temperature;
   moteus2_temp = moteus2.last_result().values.motor_temperature;
-
+  moteus1_vol = moteus1.last_result().values.voltage;
+  moteus2_vol = moteus2.last_result().values.voltage;
 //——————————————————————————————————————————————————————————————————————————————
 // Check for abort condition
 //——————————————————————————————————————————————————————————————————————————————
@@ -276,23 +291,7 @@ void loop() {
 //——————————————————————————————————————————————————————————————————————————————
 //sequence time
 //——————————————————————————————————————————————————————————————————————————————
-if(start_flag == 0){
-  char filename[32];
-  sprintf(filename, "TVCdata.txt", millis());
-  dataFile = SD.open(filename, FILE_WRITE);
-  if(dataFile) {
-    file_open = true;
-    dataFile.println("Time,Act1Cmd,Act1Real,Act1Velo,Act1Torq,Act1Qcurr,Act1Dcurr,Act1Temp,Act2Cmd,Act2Real,Act2Velo,Act2Torq,Act2Qcurr,Act2Dcurr,Act2Temp");
-    dataFile.flush();
-    Serial.print("Logging to: ");
-    Serial.println(filename);
-  } else {
-    Serial.println("Error generating datafile");
-  }
-  start_flag = 1;
-}
 
-uint32_t elapsed_time = millis() - start_time;
 
 
 
@@ -300,10 +299,23 @@ uint32_t elapsed_time = millis() - start_time;
 // Check for end of trajectory list, if ended, go to neutral and brake
 //——————————————————————————————————————————————————————————————————————————————
 
-  if(main_loop_counter == traj_length || elapsed_time >= req_time){
-    
+  if(main_loop_counter == traj_length ){
+    dataFile.println("ACK##");
     if(dataFile){    dataFile.close(); // Close the file
     Serial.println("Data written to SD card.");}
+    if (!dataFile) {
+      dataFile = SD.open("TVCdata.txt", FILE_READ);  // only open once
+    }
+    String tem = NULL;
+    while(tem != "ACK##"){
+
+      tem = dataFile.readStringUntil('\n');
+      Serial.println(tem);
+    }
+
+    Serial.println("ACK##");
+
+    dataFile.close(); 
     
     act1_forward.position = NaN;
     act1_forward.velocity = 5;
@@ -409,7 +421,7 @@ uint32_t elapsed_time = millis() - start_time;
   }
 
   
-  if(main_loop_counter == traj_length || req_time <= elapsed_time){return;} // if we went through all the traj, go back to top
+  if(main_loop_counter == traj_length ){return;} // if we went through all the traj, go back to top
 
 //——————————————————————————————————————————————————————————————————————————————
 //  Setup position command
@@ -497,9 +509,6 @@ uint32_t elapsed_time = millis() - start_time;
   Serial.print(F("time "));
   Serial.println(gNextSendMillis);
 
-  Serial.print(F("elapsed time"));
-  Serial.println(elapsed_time);
-
   Serial.print("moteus 1 position is ");
   Serial.println(moteus1_lastPosition);
 
@@ -511,6 +520,7 @@ uint32_t elapsed_time = millis() - start_time;
   actuator2_record[main_loop_counter] = tvcommand.act2_position;
 
   if(dataFile){
+    dataFile.print("ACK#");
     dataFile.print(loop_start_time);               // Time
     dataFile.print(",");
     dataFile.print(tvcommand.act1_position);       // Actuator 1 commanded position
@@ -523,23 +533,28 @@ uint32_t elapsed_time = millis() - start_time;
     dataFile.print(",");
     dataFile.print(moteus1_lastCurrent);         // Actuator 1 current
     dataFile.print(",");
-    // dataFile.print(moteus1_d_current);           // Actuator 1 d_current
-    // dataFile.print(",");
-    // dataFile.print(moteus1_temp);                // Actuator 1 temperature
-    // dataFile.print(",");
-    // dataFile.print(tvcommand.act2_position);       // Actuator 2 commanded position
-    // dataFile.print(",");
-    // dataFile.print(moteus2_lastPosition);         // Actuator 2 real position
-    // dataFile.print(",");
-    // dataFile.print(moteus2_lastVelo);            // Actuator 2 velocity
-    // dataFile.print(",");
-    // dataFile.print(moteus2_torq);                // Actuator 2 torque
-    // dataFile.print(",");
-    // dataFile.print(moteus2_lastCurrent);         // Actuator 2 current
-    // dataFile.print(",");
-    // dataFile.print(moteus2_d_current);           // Actuator 2 d_current
-    // dataFile.print(",");
-    // dataFile.print(moteus2_temp);                // Actuator 2 temperature
+    dataFile.print(moteus1_d_current);           // Actuator 1 d_current
+    dataFile.print(",");
+    dataFile.print(moteus1_temp);                // Actuator 1 temperature
+    dataFile.print(",");
+    dataFile.print(moteus1_vol);                 // Actuator 1 voltage
+    dataFile.print(",");
+    dataFile.print(tvcommand.act2_position);       // Actuator 2 commanded position
+    dataFile.print(",");
+    dataFile.print(moteus2_lastPosition);         // Actuator 2 real position
+    dataFile.print(",");
+    dataFile.print(moteus2_lastVelo);            // Actuator 2 velocity
+    dataFile.print(",");
+    dataFile.print(moteus2_torq);                // Actuator 2 torque
+    dataFile.print(",");
+    dataFile.print(moteus2_lastCurrent);         // Actuator 2 current
+    dataFile.print(",");
+    dataFile.print(moteus2_d_current);           // Actuator 2 d_current
+    dataFile.print(",");
+    dataFile.print(moteus2_temp);  
+    dataFile.print(",");
+    dataFile.print(moteus2_vol);                 // Actuator 2 voltage
+    dataFile.print("#");              // Actuator 2 temperature
     dataFile.println();
     dataFile.flush();
   }
@@ -587,7 +602,7 @@ void moteus1_calibration() {
 
   // extend_cmd.accel_limit = 1.5;
   extend_cmd.position = NaN;
-  extend_cmd.velocity = 2;
+  extend_cmd.velocity = 3;
   extend_cmd.kp_scale = 1.6;
 
   cmd.velocity = -cmd.velocity;
@@ -661,10 +676,11 @@ while (!((abs(moteus1.last_result().values.position-((middle_act1)/conversion_fa
   else{
   //Serial.println("check");
   moteus1.SetPosition(extend_cmd);
+  moteus2.SetBrake();
       }
   
   }
-  moteus1.SetStop();
+  moteus1.SetBrake();
   
 }
 
@@ -764,10 +780,11 @@ while (!((abs(moteus2.last_result().values.position-((middle_act2)/conversion_fa
       }
   else{
   moteus2.SetPosition(extend_cmd);
+  moteus1.SetBrake();
       }
   
   }
-  moteus2.SetStop();
+  moteus2.SetBrake();
 }
 //-----------------------------------------------------------------
 // Declaration of a function that finds corresponding z-intercept section given a upper and lower index
@@ -815,13 +832,5 @@ void abort_by_space(){
       moteus2.SetStop();
       while(true){}
     }
-  }
-}
-
-void cleanup() {
-  if(file_open) {
-    dataFile.close();
-    file_open = false;
-    Serial.println("Data file closed");
   }
 }
