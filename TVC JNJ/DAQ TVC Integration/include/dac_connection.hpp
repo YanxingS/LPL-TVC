@@ -22,6 +22,7 @@ private:
     int state;
     int linkState;
     File dataFile;
+    int fileOpened = 1;
     
     unsigned int message_length;
     char message[COMMAND_LENGTH];

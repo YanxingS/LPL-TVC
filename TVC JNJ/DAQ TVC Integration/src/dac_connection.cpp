@@ -59,6 +59,10 @@ bool DAC_CONNECTION::update() {
                 else if (strcmp(this -> message, "CALBR") == 0) {this -> setState(CALIBRATE); this -> client.print("ACK#");}
                 else if (strcmp(this -> message, "BRAKE") == 0) {this -> setState(BRAKE); this -> client.print("ACK#");}
                 else if (strcmp(this -> message, "READS") == 0) {
+                    if(fileOpened == 1){
+                        dataFile.close(); // close the file if it is open
+                        fileOpened = 0;
+                    }
                     if (!dataFile) {
                         dataFile = SD.open("TVCdata.txt", FILE_READ);  // only open once
                     }
