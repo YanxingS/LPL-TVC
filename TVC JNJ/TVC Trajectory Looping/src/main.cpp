@@ -126,7 +126,7 @@ static double kd_scale_tune = 0.5;
 static double accel_lim = 6.5;
 static double velo_lim = 9; 
 static double bubble_zone = 0.05;
-static double deviation_zone = 0.1;           // zone which we determine whether we deviated from desire zone
+static double deviation_zone = 0.05;           // zone which we determine whether we deviated from desire zone
 
 //-----------------------------------------------------------------
 // braking hotfire specific constants and commands
