@@ -75,8 +75,8 @@ class TV {
     //——————————————————————————————————————————————————————————————————————————————
     //  The following equations are result of linear fit in matlab curve fitter
     //——————————————————————————————————————————————————————————————————————————————
-    act1_position = 17.25 + 4.2100 * x + 4.2303 * y - 1.9297 * x * x - 0.1368 * x * y - 1.9375 * y * y;
-    act2_position = 17.25 + (-4.2100) * x + 4.2303 * y + (-1.9297) * x * x + 0.1368 * x * y + (-1.9375) * y * y;
+    act1_position = 17.0070 + 4.2091 * x + 4.2166 * y - 1.7991 * x * x - 0.5835 * x * y - 1.8018 * y * y;
+    act2_position = 17.0070 + (-4.2091) * x + 4.2166 * y + (-1.7991) * x * x + 0.5835 * x * y + (-1.8018) * y * y;
   }
 
 };
@@ -105,7 +105,7 @@ static int both_commandCompleted = 0;
 static uint32_t gNextSendMillis = 0;  // adds 20ms everyloop to ensure we send command every 20 seconds
 uint16_t gLoopCount = 0;              // loop counter
 static float max_current = 0;         // max current/resistance we observed for motor to experienced
-static float limit_current_m1 = 12.0;     // max current/resistance we allow for motor to experienced for moteus 1
+static float limit_current_m1 = 10.0;     // max current/resistance we allow for motor to experienced for moteus 1
 static float limit_current_m2 = 12.0;     // max current/resistance we allow for motor to experienced for moteus 2
 static int main_loop_counter = 0;     // main loop counter, used to advance in TV list
 // static double abs_speed = 4;
@@ -118,9 +118,9 @@ static double min_act1 = 15.25;             // updated min length
 static double max_act1 = 18.5;             
 static double min_act2 = 15.25;
 static double max_act2 = 18.5;
-static double middle_act1 = 17.25;            // actuator 1 zero position
-static double middle_act2 = 17.25;            // actuator 2 zero position
-static double abort_current = 6.0 ;           // current which will cause abort  
+static double middle_act1 = 17.00;            // actuator 1 zero position
+static double middle_act2 = 17.00;            // actuator 2 zero position
+static double abort_current = 10.0 ;           // current which will cause abort  
 static double kp_scale_tune = 0.8;
 static double kd_scale_tune = 0.5;
 static double accel_lim = 6.5;
@@ -494,7 +494,7 @@ void moteus1_calibration() {
 
   // extend_cmd.accel_limit = 1.5;
   extend_cmd.position = NaN;
-  extend_cmd.velocity = 2;
+  extend_cmd.velocity = 3;
   extend_cmd.kp_scale = 1.6;
 
   cmd.velocity = -cmd.velocity;
@@ -567,10 +567,11 @@ while (!((abs(moteus1.last_result().values.position-((middle_act1)/conversion_fa
   else{
   //Serial.println("check");
   moteus1.SetPosition(extend_cmd);
+  moteus2.SetBrake();
       }
   
   }
-  moteus1.SetStop();
+  moteus1.SetBrake();
   
 }
 
@@ -670,10 +671,11 @@ while (!((abs(moteus2.last_result().values.position-((middle_act2)/conversion_fa
       }
   else{
   moteus2.SetPosition(extend_cmd);
+  moteus1.SetBrake();
       }
   
   }
-  moteus2.SetStop();
+  moteus2.SetBrake();
 }
 //-----------------------------------------------------------------
 // Declaration of a function that finds corresponding z-intercept section given a upper and lower index
