@@ -125,9 +125,9 @@ static double kp_scale_tune = 0.8;
 static double kd_scale_tune = 0.5;
 static double accel_lim = 6.5;
 static double velo_lim = 9; 
-static double bubble_zone = 0.05;
-static double deviation_zone = 0.05;           // zone which we determine whether we deviated from desire zone
-
+static double bubble_zone = 0.08;
+static double deviation_zone = 0.1;           // zone which we determine whether we deviated from desire zone
+static int states = 0; // states = 0 - > vector, states = 1 - > break
 //-----------------------------------------------------------------
 // braking hotfire specific constants and commands
 //-----------------------------------------------------------------
@@ -247,7 +247,7 @@ void loop() {
 // Check for end of trajectory list, if ended, go to neutral and brake
 //——————————————————————————————————————————————————————————————————————————————
 
-  if(main_loop_counter == traj_length){
+  if(states == 1){
     
     act1_forward.position = NaN;
     act1_forward.velocity = 5;
@@ -356,7 +356,7 @@ void loop() {
   }
 
   
-  if(main_loop_counter == traj_length){return;} // if we went through all the traj, go back to top
+  if(main_loop_counter == 500 ){states = 1; return;} // if we went through all the traj, go back to top
 
 //——————————————————————————————————————————————————————————————————————————————
 //  Setup position command

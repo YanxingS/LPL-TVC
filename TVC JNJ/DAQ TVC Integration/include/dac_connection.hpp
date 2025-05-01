@@ -6,11 +6,13 @@
 
 using namespace qindesign::network;
 
-enum states { BRAKE, CALIBRATE, VECTOR };
+enum states { BRAKE, CALIBRATE, VECTOR, IDLE};
 enum statuses { DISCONNECTED, CONNECTED };
 enum link {DISC, CONN};
 
-const IPAddress LOCALIP(192, 168, 0, 102);
+const IPAddress LOCALIP(192, 168, 1, 151);
+const IPAddress SUBNET_MASK(255, 255, 0, 0);
+const IPAddress GATEWAY(192, 168, 0, 1);
 const uint8_t MAC[6] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 constexpr uint16_t PORT = 19690;
 

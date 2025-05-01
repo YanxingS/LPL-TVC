@@ -4,7 +4,7 @@
 
 // Constructor
 DAC_CONNECTION::DAC_CONNECTION()
-    : status(DISCONNECTED), state(CALIBRATE), linkState(DISC),message_length(0), server(PORT) {}
+    : status(DISCONNECTED), state(IDLE), linkState(DISC),message_length(0), server(PORT) {}
 
 // Destructor (No Dynamic Memory Allocation)
 DAC_CONNECTION::~DAC_CONNECTION() {}
@@ -58,23 +58,22 @@ bool DAC_CONNECTION::update() {
                 if (strcmp(this -> message, "VECTR") == 0) {this -> setState(VECTOR); this -> client.print("ACK#");}
                 else if (strcmp(this -> message, "CALBR") == 0) {this -> setState(CALIBRATE); this -> client.print("ACK#");}
                 else if (strcmp(this -> message, "BRAKE") == 0) {this -> setState(BRAKE); this -> client.print("ACK#");}
+                else if (strcmp(this -> message, "HELLO") == 0) {this -> client.print("ACK#");}
                 else if (strcmp(this -> message, "READS") == 0) {
-                    if(fileOpened == 1){
-                        dataFile.println("ACK##");
-                        dataFile.close(); // close the file if it is open
-                        fileOpened = 0;
-                    }
                     if (!dataFile) {
                         dataFile = SD.open("TVCdata.txt", FILE_READ);  // only open once
                     }
-                    String tem = dataFile.readStringUntil('\n');
-                    if(tem != "ACK##"){
-                        this -> client.print(tem);
+                    if (dataFile && dataFile.available()){
+                        // :)
+                        String tem = dataFile.readStringUntil('\n');
+                        
+                        this -> client.print("ACK#" + tem + "#");
                     }
                     else{
-                        dataFile.close(); // close the file if it is open
+                        if(dataFile) dataFile.close();
                         this -> client.print("ACK##");
-                    }
+                    } 
+                    return false;
                 }
                 else return false; // Invalid Command
 

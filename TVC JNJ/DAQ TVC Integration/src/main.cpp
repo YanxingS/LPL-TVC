@@ -126,7 +126,7 @@ static float max_current = 0;         // max current/resistance we observed for 
 static float limit_current_m1 = 10.0;     // max current/resistance we allow for motor to experienced for moteus 1
 static float limit_current_m2 = 12.0;     // max current/resistance we allow for motor to experienced for moteus 2
 static int main_loop_counter = 0;     // main loop counter, used to advance in TV list
-static int states = 1; // states: 1 = calibration, state = 2 break, state 3 = vector
+static int states = 1; // states: 1 = calibration, state = 2 break, state 3 = vector, state 4 = IDLE
 
 //——————————————————————————————————————————————————————————————————————————————
 // critical constants
@@ -142,9 +142,9 @@ static double abort_current = 12.0 ;           // current which will cause abort
 static double kp_scale_tune = 0.8;
 static double kd_scale_tune = 0.5;
 static double accel_lim = 6.5;
-static double velo_lim = 9; 
+static double velo_lim = 15; 
 static double bubble_zone = 0.05;
-static double deviation_zone = 0.05;           // zone which we determine whether we deviated from desire zone
+static double deviation_zone = 0.1;           // zone which we determine whether we deviated from desire zone
 
 File dataFile;
 unsigned long loop_start_time;
@@ -189,7 +189,7 @@ void setup() {
   SD.remove("TVCdata.txt");
   dataFile = SD.open("TVCdata.txt", FILE_WRITE);
   if(dataFile) {
-    dataFile.println("ACK#Time|Act1Cmd|Act1Real|Act1Velo|Act1Torq|Act1Qcurr|Act1Dcurr|Act1Temp|Act1Vol|Act2Cmd|Act2Real|Act2Velo|Act2Torq|Act2Qcurr|Act2Dcurr|Act2Temp|Act2Vol#");
+    dataFile.println("Time|Act1Cmd|Act1Real|Act1Velo|Act1Torq|Act1Qcurr|Act1Dcurr|Act1Temp|Act1Vol|Act2Cmd|Act2Real|Act2Velo|Act2Torq|Act2Qcurr|Act2Dcurr|Act2Temp|Act2Vol");
     dataFile.flush();
   } else {
     Serial.println("Error generating datafile");
@@ -208,6 +208,7 @@ void setup() {
     moteus2.SetStop();
 
     Serial.println("test");
+
   if (dac.initialize()) {
     // Initialize the DAC Server
     Serial.println("DAC INITIALIZATION SUCCESS! with IP");
@@ -254,6 +255,8 @@ void loop() {
   // dac.updateLinkState(); 
   // // Check if DAC CONNECTION IS STILL ACTIVE 
   // dac.updateStatus();
+
+  if(dac.getState() == IDLE && states == 1){dac.update(); return;}
 
   if((dac.getState() == CALIBRATE && (states == 1))&&(dac.getStatus() == CONNECTED)){
 
@@ -463,7 +466,7 @@ void loop() {
           both_commandCompleted = 0;
         }
 
-        if(traj_length == main_loop_counter){
+        if(main_loop_counter == 500){
           Serial.println("trajectory ended");
           //main_loop_counter = 0; // uncomment if you want to rerun
           states = 2;
@@ -489,7 +492,7 @@ void loop() {
   actuator2_record[main_loop_counter] = tvcommand.act2_position;
 
   if(dataFile){
-    dataFile.print("ACK#");
+    // dataFile.print("ACK#");
     dataFile.print(loop_start_time);               // Time
     dataFile.print(",");
     dataFile.print(tvcommand.act1_position);       // Actuator 1 commanded position
@@ -523,7 +526,7 @@ void loop() {
     dataFile.print(moteus2_temp);  
     dataFile.print(",");
     dataFile.print(moteus2_vol);                 // Actuator 2 voltage
-    dataFile.print("#");              // Actuator 2 temperature
+    // dataFile.print("#");              // Actuator 2 temperature
     dataFile.println();
     dataFile.flush();
   }
