@@ -60,18 +60,19 @@ bool DAC_CONNECTION::update() {
                 else if (strcmp(this -> message, "BRAKE") == 0) {this -> setState(BRAKE); this -> client.print("ACK#");}
                 else if (strcmp(this -> message, "READS") == 0) {
                     if(fileOpened == 1){
+                        dataFile.println("ACK##");
                         dataFile.close(); // close the file if it is open
                         fileOpened = 0;
                     }
                     if (!dataFile) {
                         dataFile = SD.open("TVCdata.txt", FILE_READ);  // only open once
                     }
-                    if (dataFile && dataFile.available()){
-                        String tem = dataFile.readStringUntil('\n');
-                        this -> client.print("ACK#" + tem + "#");
+                    String tem = dataFile.readStringUntil('\n');
+                    if(tem != "ACK##"){
+                        this -> client.print(tem);
                     }
                     else{
-                        if(dataFile) dataFile.close();
+                        dataFile.close(); // close the file if it is open
                         this -> client.print("ACK##");
                     }
                 }

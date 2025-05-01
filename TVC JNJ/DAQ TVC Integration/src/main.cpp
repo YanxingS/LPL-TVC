@@ -112,6 +112,8 @@ static double moteus1_d_current;
 static double moteus2_d_current;
 static double moteus1_temp;
 static double moteus2_temp;
+static double moteus1_vol;
+static double moteus2_vol;
 
 // static double commanded_position;     // testing, this variable is manually set
 static int m1_commandCompleted = 0;   // m1 command completion check
@@ -184,12 +186,11 @@ void setup() {
   else{
     Serial.println("SD card ok");
   }
+  SD.remove("TVCdata.txt");
   dataFile = SD.open("TVCdata.txt", FILE_WRITE);
   if(dataFile) {
-    file_open = true;
-    dataFile.println("Time|Act1Cmd|Act1Real|Act1Velo|Act1Torq|Act1Qcurr|Act1Dcurr|Act1Temp|Act2Cmd|Act2Real|Act2Velo|Act2Torq|Act2Qcurr|Act2Dcurr|Act2Temp");
+    dataFile.println("ACK#Time|Act1Cmd|Act1Real|Act1Velo|Act1Torq|Act1Qcurr|Act1Dcurr|Act1Temp|Act1Vol|Act2Cmd|Act2Real|Act2Velo|Act2Torq|Act2Qcurr|Act2Dcurr|Act2Temp|Act2Vol#");
     dataFile.flush();
-    Serial.print("Logging..");
   } else {
     Serial.println("Error generating datafile");
   }
@@ -240,6 +241,8 @@ void loop() {
   moteus2_d_current = moteus2.last_result().values.d_current;
   moteus1_temp = moteus1.last_result().values.motor_temperature;
   moteus2_temp = moteus2.last_result().values.motor_temperature;
+  moteus1_vol = moteus1.last_result().values.voltage;
+  moteus2_vol = moteus2.last_result().values.voltage;
 
   // TV instance 
   TV tvcommand(TV_list_x[main_loop_counter],TV_list_y[main_loop_counter],TV_list_z[main_loop_counter]);
@@ -486,6 +489,7 @@ void loop() {
   actuator2_record[main_loop_counter] = tvcommand.act2_position;
 
   if(dataFile){
+    dataFile.print("ACK#");
     dataFile.print(loop_start_time);               // Time
     dataFile.print(",");
     dataFile.print(tvcommand.act1_position);       // Actuator 1 commanded position
@@ -502,6 +506,8 @@ void loop() {
     dataFile.print(",");
     dataFile.print(moteus1_temp);                // Actuator 1 temperature
     dataFile.print(",");
+    dataFile.print(moteus1_vol);                 // Actuator 1 voltage
+    dataFile.print(",");
     dataFile.print(tvcommand.act2_position);       // Actuator 2 commanded position
     dataFile.print(",");
     dataFile.print(moteus2_lastPosition);         // Actuator 2 real position
@@ -514,7 +520,10 @@ void loop() {
     dataFile.print(",");
     dataFile.print(moteus2_d_current);           // Actuator 2 d_current
     dataFile.print(",");
-    dataFile.print(moteus2_temp);                // Actuator 2 temperature
+    dataFile.print(moteus2_temp);  
+    dataFile.print(",");
+    dataFile.print(moteus2_vol);                 // Actuator 2 voltage
+    dataFile.print("#");              // Actuator 2 temperature
     dataFile.println();
     dataFile.flush();
   }
