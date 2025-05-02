@@ -133,9 +133,9 @@ static int states = 1; // states: 1 = calibration, state = 2 break, state 3 = ve
 //——————————————————————————————————————————————————————————————————————————————
 static int traj_length = vector_size;
 static double min_act1 = 15.25;             // updated min length
-static double max_act1 = 18.5;             
+static double max_act1 = 18.4;             
 static double min_act2 = 15.25;
-static double max_act2 = 18.5;
+static double max_act2 = 18.4;
 static double middle_act1 = 17.00;            // actuator 1 zero position
 static double middle_act2 = 17.00;            // actuator 2 zero position
 static double abort_current = 12.0 ;           // current which will cause abort  
@@ -378,6 +378,9 @@ void loop() {
   }
   
   if(dac.getState() == VECTOR && (states == 3 )){
+
+    loop_start_time = millis();
+    
     Serial.println("vector phase");
     states = 3; // you are in vector state
     // listen to new message 
@@ -386,6 +389,8 @@ void loop() {
       states = 1; 
       return;
       }
+      
+      if(at_edge(moteus1_lastPosition,moteus2_lastPosition)){states = 2; return;}
     //——————————————————————————————————————————————————————————————————————————————
     //  Setup position command
     //——————————————————————————————————————————————————————————————————————————————
@@ -396,6 +401,7 @@ void loop() {
       Moteus::PositionMode::Command m1_hold_cmd;
       Moteus::PositionMode::Command m2_hold_cmd;
    
+      
       //——————————————————————————————————————————————————————————————————————————————
       // moteus 1 command 
       //——————————————————————————————————————————————————————————————————————————————
@@ -803,4 +809,20 @@ bool abort_sense(double m1_current_sensed, double m2_current_sensed){
 
     return false;
   }
+}
+
+bool at_edge(double m1_position,double m2_position){
+
+  if((abs(m1_position - min_act1) <= 0.05)||(abs(m1_position - max_act1) <= 0.05)){
+    Serial.println("m1 edge detected");
+    return true;
+  }
+  else if((abs(m2_position - min_act2) <= 0.05)||(abs(m2_position - max_act2) <= 0.05)){
+    Serial.println("m2 edge detected");
+    return true;
+  }
+  else {
+    return false;
+  }
+
 }
