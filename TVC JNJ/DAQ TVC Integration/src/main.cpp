@@ -380,7 +380,7 @@ void loop() {
   if(dac.getState() == VECTOR && (states == 3 )){
 
     loop_start_time = millis();
-    
+
     Serial.println("vector phase");
     states = 3; // you are in vector state
     // listen to new message 
@@ -389,8 +389,10 @@ void loop() {
       states = 1; 
       return;
       }
-      
-      if(at_edge(moteus1_lastPosition,moteus2_lastPosition)){states = 2; return;}
+    //——————————————————————————————————————————————————————————————————————————————
+    //  check if we are close to edge of ball screw
+    //——————————————————————————————————————————————————————————————————————————————
+    if(at_edge(moteus1_lastPosition,moteus2_lastPosition)){states = 2; return;}
     //——————————————————————————————————————————————————————————————————————————————
     //  Setup position command
     //——————————————————————————————————————————————————————————————————————————————
