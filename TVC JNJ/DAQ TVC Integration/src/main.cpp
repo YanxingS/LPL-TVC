@@ -165,7 +165,7 @@ int tvc_state = BRAKE;
 void setup() {
   // let the world know we have began ! 
   Serial.begin(115200); 
-  while (!Serial) {};
+  // while (!Serial) {};
   Serial.println("STARTING...");
 
   // initialize ACAN_T4FD and CAN message
