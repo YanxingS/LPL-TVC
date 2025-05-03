@@ -243,6 +243,7 @@ void loop() {
   
   gNextSendMillis += 20;
 
+  if(at_edge(moteus1_lastPosition,moteus2_lastPosition)){states = 1; Serial.println("edge detected");return;}
 //——————————————————————————————————————————————————————————————————————————————
 // Check for end of trajectory list, if ended, go to neutral and brake
 //——————————————————————————————————————————————————————————————————————————————
