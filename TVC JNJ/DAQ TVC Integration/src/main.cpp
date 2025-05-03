@@ -164,27 +164,27 @@ int tvc_state = BRAKE;
 
 void setup() {
   // let the world know we have began ! 
-  Serial.begin(115200); 
-  while (!Serial) {};
-  Serial.println("STARTING...");
+  //Serial.begin(115200); 
+  //while (!Serial) {};
+  //Serial.println("STARTING...");
 
   // initialize ACAN_T4FD and CAN message
   ACAN_T4FD_Settings settings(1000000, DataBitRateFactor::x1);
 
   const uint32_t errorCode = ACAN_T4::can3.beginFD(settings);
   if (0 == errorCode) {
-    Serial.println("can3 ok");
+    //Serial.println("can3 ok");
   } else {
     Serial.print("Error can3: 0x");
-    Serial.println(errorCode, HEX);
+    ////Serial.println(errorCode, HEX);
   }
 
   if(!SD.begin(BUILTIN_SDCARD) ){
-    Serial.println("SD card failed");
+    //Serial.println("SD card failed");
     while(true){};
   }
   else{
-    Serial.println("SD card ok");
+    //Serial.println("SD card ok");
   }
   SD.remove("TVCdata.txt");
   dataFile = SD.open("TVCdata.txt", FILE_WRITE);
@@ -192,7 +192,7 @@ void setup() {
     dataFile.println("Time|Act1Cmd|Act1Real|Act1Velo|Act1Torq|Act1Qcurr|Act1Dcurr|Act1Temp|Act1Vol|Act2Cmd|Act2Real|Act2Velo|Act2Torq|Act2Qcurr|Act2Dcurr|Act2Temp|Act2Vol");
     dataFile.flush();
   } else {
-    Serial.println("Error generating datafile");
+    //Serial.println("Error generating datafile");
   }
   
   //——————————————————————————————————————————————————————————————————————————————
@@ -207,21 +207,21 @@ void setup() {
     moteus1.SetStop();
     moteus2.SetStop();
 
-    Serial.println("test");
+    //Serial.println("test");
 
   if (dac.initialize()) {
     // Initialize the DAC Server
-    Serial.println("DAC INITIALIZATION SUCCESS! with IP");
-    Serial.println(dac.ip);
+    //Serial.println("DAC INITIALIZATION SUCCESS! with IP");
+    //Serial.println(dac.ip);
   }
   else {
-    Serial.println("DAC INITIALIZAITON FAILED.");
+    //Serial.println("DAC INITIALIZAITON FAILED.");
     return;
   }
 
   while(!dac.connect());
 
-  Serial.println("CONNECTED!");
+  //Serial.println("CONNECTED!");
 }
 
 void loop() {
@@ -260,16 +260,16 @@ void loop() {
 
   if((dac.getState() == CALIBRATE && (states == 1))&&(dac.getStatus() == CONNECTED)){
 
-    Serial.println("second moteus calibration beginning in 2 seconds");
+    //Serial.println("second moteus calibration beginning in 2 seconds");
     delay(2000);
 
     moteus2_calibration();
-    Serial.println("first Moteus calibration beginning in 2 seconds");
+    //Serial.println("first Moteus calibration beginning in 2 seconds");
     delay(2000);
-    Serial.println("------------------------");
+    //Serial.println("------------------------");
     moteus1_calibration();  //moteus 1 calibration
 
-    Serial.println("------------------------");
+    //Serial.println("------------------------");
     moteus1.SetStop();
     moteus2.SetStop();
     
@@ -371,7 +371,7 @@ void loop() {
       }
       else if (dac.getState() == VECTOR){
         states = 3;
-        Serial.println("state is 3");
+        //Serial.println("state is 3");
       }
     } // if there is upate in dac, exit
     else {states = 2;} // otherwise stay in break 
@@ -381,11 +381,11 @@ void loop() {
 
     loop_start_time = millis();
     
-    Serial.println("vector phase");
+    //Serial.println("vector phase");
     states = 3; // you are in vector state
     // listen to new message 
     if(dac.update() == true){
-      Serial.println("is DAC really false ?");
+      //Serial.println("is DAC really false ?");
       states = 1; 
       return;
       }
@@ -446,7 +446,7 @@ void loop() {
         else{
           m1_commandCompleted = 0;
           moteus1.SetPosition(m1_position_cmd);
-          Serial.println("trying to command m1");
+          //Serial.println("trying to command m1");
           }
 
         // checking m2 command
@@ -457,7 +457,7 @@ void loop() {
         else{
           m2_commandCompleted = 0;
           moteus2.SetPosition(m2_position_cmd);
-          Serial.println("trying to command m2");
+          //Serial.println("trying to command m2");
           }
 
         // checking both command
@@ -466,14 +466,14 @@ void loop() {
             m1_commandCompleted = 0;
             m2_commandCompleted = 0;
             ++main_loop_counter; // advance in vectoring
-            Serial.println("advanced");
+            //Serial.println("advanced");
         }
         else{
           both_commandCompleted = 0;
         }
 
         if(main_loop_counter == 500){
-          Serial.println("trajectory ended");
+          //Serial.println("trajectory ended");
           //main_loop_counter = 0; // uncomment if you want to rerun
           states = 2;
           return;
@@ -484,15 +484,15 @@ void loop() {
 //——————————————————————————————————————————————————————————————————————————————
   if (gLoopCount % 100 != 0) { return; }
   // Only print our status every 5th cycle, so every 1s.
-  Serial.print(F("time "));
-  Serial.println(gNextSendMillis);
+  //Serial.print(F("time "));
+  //Serial.println(gNextSendMillis);
 
-  Serial.print("moteus 1 position is ");
-  Serial.println(moteus1_lastPosition);
+  //Serial.print("moteus 1 position is ");
+  //Serial.println(moteus1_lastPosition);
 
-  Serial.print("moteus 2 position is ");
-  Serial.println(moteus2_lastPosition);
-  Serial.println();
+  //Serial.print("moteus 2 position is ");
+  //Serial.println(moteus2_lastPosition);
+  //Serial.println();
 
   actuator1_record[main_loop_counter] = tvcommand.act1_position;
   actuator2_record[main_loop_counter] = tvcommand.act2_position;
@@ -542,17 +542,17 @@ void loop() {
 //-----------------------------------------------------------------
 
   if(both_commandCompleted == 1){
-    Serial.println("-------------moteus 1 and 2 command completed-------------");
+    //Serial.println("-------------moteus 1 and 2 command completed-------------");
   }
   else if(both_commandCompleted == 0){
-    Serial.println("---------------------------------------");
-    Serial.print("m1 commanding to ");
-    Serial.print(tvcommand.act1_position);
-    Serial.print(" m2 commanding to ");
-    Serial.println(tvcommand.act2_position);
-    Serial.println("---------------------------------------");
-    Serial.println(main_loop_counter);
-    Serial.println("---------------------------------------");
+    //Serial.println("---------------------------------------");
+    //Serial.print("m1 commanding to ");
+    //Serial.print(tvcommand.act1_position);
+    //Serial.print(" m2 commanding to ");
+    //Serial.println(tvcommand.act2_position);
+    //Serial.println("---------------------------------------");
+    //Serial.println(main_loop_counter);
+    //Serial.println("---------------------------------------");
 
 
   }
@@ -569,9 +569,9 @@ void loop() {
       if((states == 2) || (states == 3)){return;} // if we are disc. and in vector or break, continue
 
       else{
-      Serial.println("ETHERNET CABLE DISCONNECTED, WAITING FOR RECONNECT ...");
+      //Serial.println("ETHERNET CABLE DISCONNECTED, WAITING FOR RECONNECT ...");
       while (!dac.initialize());
-      Serial.println("ETHERNET CABLE RECONNECTED!");
+      //Serial.println("ETHERNET CABLE RECONNECTED!");
       }
     }
   
@@ -584,9 +584,9 @@ void loop() {
       if((states == 2) || (states == 3)){return;} // if we are disconnected, and in vector or break, continue
       
       else{
-      Serial.println("DAC DISCONNECTED, WAITING FOR RECONNECT ... ");
+      //Serial.println("DAC DISCONNECTED, WAITING FOR RECONNECT ... ");
       while(!dac.connect()); 
-      Serial.println("DAC CONNECTED!");
+      //Serial.println("DAC CONNECTED!");
       }
     }
 
@@ -618,7 +618,7 @@ void moteus1_calibration() {
   while (!(max_current > abs(limit_current_m1))) {
 
     if(abort_sense(moteus1.last_result().values.q_current,moteus2.last_result().values.q_current)){
-        Serial.println("program terminated");
+        //Serial.println("program terminated");
         while(true){}
       }
 
@@ -637,22 +637,22 @@ void moteus1_calibration() {
   moteus1.SetStop();
 
   delay(1000);
-  Serial.println("------------------------");
-  Serial.print("excessive q_current detected: ");
-  Serial.println(abs(max_current));
-  Serial.print("current position is: ");
-  Serial.println(moteus1.last_result().values.position);
-  Serial.println("------------------------");
-  Serial.println("Calibration Completed");
-  Serial.println("------------------------");
+  //Serial.println("------------------------");
+  //Serial.print("excessive q_current detected: ");
+  //Serial.println(abs(max_current));
+  //Serial.print("current position is: ");
+  //Serial.println(moteus1.last_result().values.position);
+  //Serial.println("------------------------");
+  //Serial.println("Calibration Completed");
+  //Serial.println("------------------------");
 
-  Serial.println("Changing current position. . . ");
+  //Serial.println("Changing current position. . . ");
   delay(2000);
 
-  Serial.println("------------------------");
-  Serial.print("Current position is : ");
-  Serial.println(moteus1.last_result().values.position);
-  Serial.println("------------------------");
+  //Serial.println("------------------------");
+  //Serial.print("Current position is : ");
+  //Serial.println(moteus1.last_result().values.position);
+  //Serial.println("------------------------");
 
   //-----------------------------------------------------------------
   // change currentp position to be bottom of LKup table
@@ -662,27 +662,27 @@ void moteus1_calibration() {
 
   moteus1.SetOutputExact(calibration_cmd);
   
-  Serial.println("moteus 1 current psotion is now : ");
+  //Serial.println("moteus 1 current psotion is now : ");
 
   zero_cmd.accel_limit = 0.1;
   zero_cmd.position = calibration_cmd.position;
   zero_cmd.velocity = NaN;
 
   moteus1.SetPosition(zero_cmd);
-  Serial.println(moteus1.last_result().values.position);
+  //Serial.println(moteus1.last_result().values.position);
 
 //-----------------------------------------------------------------
 // new section, going back to it's middle section
 //-----------------------------------------------------------------
-Serial.println("moteus 1 going back to middle in 1 sec");
+//Serial.println("moteus 1 going back to middle in 1 sec");
 
 while (!((abs(moteus1.last_result().values.position-((middle_act1)/conversion_factor))<=0.04/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current,moteus2.last_result().values.q_current)){
-        Serial.println("program terminated");
+        //Serial.println("program terminated");
         while(true){}
       }
   else{
-  //Serial.println("check");
+  ////Serial.println("check");
   moteus1.SetPosition(extend_cmd);
   moteus2.SetBrake();
       }
@@ -718,7 +718,7 @@ void moteus2_calibration() {
   while (!(max_current > abs(limit_current_m2))) {
 
     if(abort_sense(moteus1.last_result().values.q_current , moteus2.last_result().values.q_current)){
-        Serial.println("program terminated");
+        //Serial.println("program terminated");
         while(true){}
       }
 
@@ -742,22 +742,22 @@ void moteus2_calibration() {
   
 
   delay(1000);
-  Serial.println("------------------------");
-  Serial.print("excessive q_current detected: ");
-  Serial.println(abs(max_current));
-  Serial.print("current position is: ");
-  Serial.println(moteus2.last_result().values.position);
-  Serial.println("------------------------");
-  Serial.println("Calibration Completed");
-  Serial.println("------------------------");
+  //Serial.println("------------------------");
+  //Serial.print("excessive q_current detected: ");
+  //Serial.println(abs(max_current));
+  //Serial.print("current position is: ");
+  //Serial.println(moteus2.last_result().values.position);
+  //Serial.println("------------------------");
+  //Serial.println("Calibration Completed");
+  //Serial.println("------------------------");
 
-  Serial.println("Changing current position. . . ");
+  //Serial.println("Changing current position. . . ");
   delay(2000);
 
-  Serial.println("------------------------");
-  Serial.print("Current position is : ");
-  Serial.println(moteus2.last_result().values.position);
-  Serial.println("------------------------");
+  //Serial.println("------------------------");
+  //Serial.print("Current position is : ");
+  //Serial.println(moteus2.last_result().values.position);
+  //Serial.println("------------------------");
 
   //-----------------------------------------------------------------
   // change currentp position to be bottom of LKup table
@@ -766,24 +766,24 @@ void moteus2_calibration() {
   calibration_cmd.position = min_act2/conversion_factor;  // this is the smallest actuator length value
 
   moteus2.SetOutputExact(calibration_cmd);
-  Serial.println("moteus 2 current position is now : ");
+  //Serial.println("moteus 2 current position is now : ");
 
   zero_cmd.accel_limit = 0.1;
   zero_cmd.position = calibration_cmd.position;
   zero_cmd.velocity = NaN;
 
   moteus2.SetPosition(zero_cmd);
-  Serial.println(moteus2.last_result().values.position);
+  //Serial.println(moteus2.last_result().values.position);
 
 
 //-----------------------------------------------------------------
 // new section, going back to it's middle section
 //-----------------------------------------------------------------
-Serial.println("moteus 2 going back to middle in 1 sec");
+//Serial.println("moteus 2 going back to middle in 1 sec");
 
 while (!((abs(moteus2.last_result().values.position-((middle_act2)/conversion_factor))<=0.04/conversion_factor))){
   if(abort_sense(moteus1.last_result().values.q_current , moteus2.last_result().values.q_current)){
-        Serial.println("program terminated");
+        //Serial.println("program terminated");
         while(true){}
       }
   else{
@@ -799,7 +799,7 @@ bool abort_sense(double m1_current_sensed, double m2_current_sensed){
 
   if((m1_current_sensed >= abort_current) || (m2_commandCompleted >= abort_current)){
 
-    Serial.println("abort initiated");
+    //Serial.println("abort initiated");
 
     moteus1.SetStop();
     moteus2.SetStop();
@@ -814,11 +814,11 @@ bool abort_sense(double m1_current_sensed, double m2_current_sensed){
 bool at_edge(double m1_position,double m2_position){
 
   if((abs(m1_position - min_act1) <= 0.05)||(abs(m1_position - max_act1) <= 0.05)){
-    Serial.println("m1 edge detected");
+    //Serial.println("m1 edge detected");
     return true;
   }
   else if((abs(m2_position - min_act2) <= 0.05)||(abs(m2_position - max_act2) <= 0.05)){
-    Serial.println("m2 edge detected");
+    //Serial.println("m2 edge detected");
     return true;
   }
   else {
